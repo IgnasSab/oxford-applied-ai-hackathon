@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="StudyMatch research participation demo: discover, screen, and book suitable studies.">
+  <title>StudyMatch — Research, within reach</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="demo-strip">Hackathon prototype · Synthetic people and studies only · No real sign-ups</div>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="StudyMatch home"><span class="brand-mark">s<span>m</span></span>StudyMatch<span class="brand-dot">.</span></a>
+    <div class="role-switch" aria-label="Demo role"><button class="active" data-role="participant" aria-pressed="true">Participant</button><button data-role="researcher" aria-pressed="false">Researcher</button></div>
+    <span class="header-note">Oxford · Research community</span>
+  </header>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+  <main id="app"><div class="loading">Preparing your research workspace…</div></main>
+  <footer><span>StudyMatch <span class="muted">/ A little curiosity. A meaningful contribution.</span></span><span>Local demo · No clinical safety clearance</span></footer>
+  <dialog id="dialog"><button class="dialog-close" aria-label="Close dialog">×</button><div id="dialog-content"></div></dialog>
+</body>
+</html>
