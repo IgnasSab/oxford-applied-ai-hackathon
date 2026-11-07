@@ -20,13 +20,22 @@ Optional live extraction: copy `.env.example` to `.env` and set `OPENAI_API_KEY`
 
 ## How AI and matching work
 
-FastAPI calls OpenAI through the Python SDK's `responses.parse`, using `gpt-4.1-mini` by default (`OPENAI_MODEL` can override it). A single structured-output request turns researcher text into study fields, eligibility rules, additional questions and a convenience score. Pydantic validates the response; source quotations and review flags are checked before storing the draft. PDF import extracts text locally first. Researchers approve the prepared study; ratings and rules cannot be supplied manually at publication. Editing the source requires a fresh preparation.
+FastAPI calls OpenAI through the Python SDK's `responses.parse`, using `gpt-4.1-mini` by default (`OPENAI_MODEL` can override it). A structured-output request turns researcher text into clean public study fields, private eligibility rules, additional questions and a convenience score. The prompt excludes page headers, footers, navigation, URLs and administrative clutter from descriptions while retaining inclusion/exclusion requirements and verbatim evidence separately. Pydantic validates the response; source quotations and review flags are checked before storing the draft. PDF text is extracted locally first. The editable description uses cleaned prose and requirements rather than the raw PDF dump. Researchers choose topics, correct facts and approve publication; ratings and rules remain AI-prepared. Editing facts requires a fresh preparation.
 
-Eligibility and ranking run in Python against saved data. Birth date supplies current age; university requirements use normalized affiliation names. Location, format, duration and preferred times are optional filters. The sliders combine interest overlap, hourly compensation and the saved AI convenience score without further model calls. Participant profiles and review notes are never sent to OpenAI. Seeded examples and the labelled fixed example use synthetic fixture results.
+Eligibility and ranking run in Python against saved data. Birth date supplies current age; university requirements use normalized names, and language requirements use explicit proficiency. Known ordinary failures are excluded first. Unknown facts become targeted questions; answers persist per participant and study. Safety-sensitive or ambiguous requirements retain human review. Participant profiles, medical answers and review notes never go to OpenAI. Seeded examples and the labelled fixed example use synthetic fixture results.
+
+Each score component is between 1 and 5:
+
+- Interest = 1 + 4 × (shared topic count / participant's selected topic count); 1 when no interests are selected.
+- Earnings = 1 + 4 × min(hourly compensation / £25, 1).
+- Convenience = the stored AI rating of study burden, from 1 (specialist preparation/high burden) to 5 (short online session with little setup).
+- Final preference score = weighted mean of those three components, rounded to one decimal. The three weights are edited only in Profile & preferences. This is not an eligibility probability.
+
+Location, format, duration and preferred times are optional filters enabled from preferences. Location uses a text match, not distance/geolocation. Discovery also filters by topic and eligibility state. Notifications are participant-scoped SQLite records for matches, bookings and review decisions; match alerts respect opt-in and are deduplicated. Delivery/frequency remains an in-app demonstration, with no external messages.
 
 ## Accounts and demo
 
-Create an account using email and password and choose Participant or Researcher. Participants complete the short profile and preferences before browsing. Accounts, profiles, reviewed studies, answers, sessions and bookings persist in ignored `backend/studymatch-v2.sqlite3`. The old prototype database remains untouched. Existing accounts keep their data and bookings; profiles missing the expanded prescreen are prompted to complete it.
+Create an account using email and password and choose Participant or Researcher. Participants complete the core prescreen before browsing and can edit preferences directly. Accounts, profiles, reviewed studies, answers, sessions, bookings and notifications persist in ignored `backend/studymatch-v2.sqlite3`. Existing accounts keep their data and bookings. New general/medical questions are optional and do not force completed profiles through onboarding again. Use fictional answers in the demo.
 
 Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
@@ -35,11 +44,13 @@ Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
 Demo flow:
 
-1. Sign up as a participant; complete the 14-field prescreen, optional free response, and interests. Select a birth date; age is calculated automatically.
-2. Browse ranked studies. Move the three sliders to change priority; the 1–5 preference score is distinct from eligibility.
-3. Open a study needing screening. Answer only its remaining questions, then select a future session. The calendar shows booked sessions in green and available sessions in grey.
-4. Sign in as researcher. Enter study facts or upload a PDF. AI prepares screening and convenience scoring from the description. Check the preview, add slots and publish. Editing source facts requires preparing a fresh draft.
-5. The new study appears to matching participants; confirmed bookings appear in its researcher's dashboard. Studies needing human review offer a request button and an owned researcher review queue.
+1. Sign up as a participant; complete the core prescreen using birth date and explicit Yes/No answers. Additional general and medical questions are optional; additional languages have proficiency levels.
+2. Open Profile & preferences to save interests, filters and priority sliders directly, independently of the prescreen. Browse studies by format, topic and eligibility state.
+3. Open a potential match and answer only remaining questions. The calendar shows booked sessions in green and available sessions in grey, with upcoming bookings listed beside it.
+4. Sign in as researcher. Enter study facts or use Simple PDF or text import. Choose topics and, for an in-person study, location. AI prepares a cleaned description and screening. Review, add slots and publish.
+5. View matching alerts, booking confirmations and review decisions on Notifications. Studies needing human review offer a request button and an owned researcher review queue.
+
+The combined version ports the broader questionnaire, language proficiency, topic discovery and stored-notification ideas from the supplied `friends/app.py`, `engine.py`, `ai.py` and `storage.py`. It retains this app's authenticated React/FastAPI workflow and existing database; the friend's separate Streamlit account selector and datastore are not used.
 
 ## Scope and team handoff
 

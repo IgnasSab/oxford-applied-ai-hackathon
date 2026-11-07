@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, FileText, FlaskConical, Plus, Trash2, Upload } from 'lucide-react';
 import { api, dateLabel, formatLabel, money, timeLabel } from './api';
-import { Back, Button, Empty, ErrorMessage, Field, Heading, Loading, Notice, Shell } from './components';
+import { Back, Button, ChoiceField, Empty, ErrorMessage, Field, Heading, Loading, Notice, Shell, TagPicker } from './components';
 
-const blankStudy = { title: '', description: '', mode: 'online', location: 'Online', duration: 30, compensation: 0 };
+const blankStudy = { title: '', description: '', mode: 'online', location: 'Online', duration: 30, compensation: 0, tags: [] };
 
 function nextSession() {
   const date = new Date();
@@ -36,13 +36,15 @@ function CreateStudy({ bootstrap, onBack, onPublish }) {
       if (kind === 'pdf') { const body = new FormData(); body.append('file', file); extraction = await api('/extract/pdf', 'POST', body); }
       else extraction = await api('/extract', 'POST', { description: kind === 'sample' ? bootstrap.sample_description : source, demo: kind === 'sample' });
       const fields = extraction.fields;
-      setStudy({ title: fields.title, description: extraction.source_text, mode: fields.mode, location: fields.location, duration: fields.duration, compensation: fields.compensation });
+      setStudy({ title: fields.title, description: `${fields.description}${fields.requirements ? `\n\nEligibility:\n${fields.requirements}` : ''}`, mode: fields.mode, location: fields.location, duration: fields.duration, compensation: fields.compensation, tags: fields.tags });
       setSource(extraction.source_text); setDraft(extraction); setApproved(false);
     } catch (failure) { setError(failure.message); }
     finally { setBusy(''); }
   }
   async function prepare(event) {
-    event.preventDefault(); setBusy('prepare'); setError('');
+    event.preventDefault();
+    if (!study.tags.length) { setError('Choose at least one study topic before preparing the preview.'); return; }
+    setBusy('prepare'); setError('');
     try { setDraft(await api('/studies/prepare', 'POST', study)); setApproved(false); }
     catch (failure) { setError(failure.message); }
     finally { setBusy(''); }
@@ -54,7 +56,7 @@ function CreateStudy({ bootstrap, onBack, onPublish }) {
     finally { setBusy(''); }
   }
   return <div className="page create-page"><Back onClick={onBack}>Back to my studies</Back><Heading title="Create a study" />
-    <details className="import-section"><summary><FileText size={17} />Import a PDF or text<ChevronRight size={15} /></summary><div className="import-tabs segmented" aria-label="Import method">{[['pdf','Upload PDF'],['text','Paste text']].map(([key,label]) => <button type="button" key={key} aria-pressed={importMethod === key} className={importMethod === key ? 'active' : ''} onClick={() => setImportMethod(key)}>{label}</button>)}</div>
+    <details className="import-section"><summary><FileText size={17} />Simple PDF or text import<ChevronRight size={15} /></summary><div className="import-tabs segmented" aria-label="Import method">{[['pdf','Upload PDF'],['text','Paste text']].map(([key,label]) => <button type="button" key={key} aria-pressed={importMethod === key} className={importMethod === key ? 'active' : ''} onClick={() => setImportMethod(key)}>{label}</button>)}</div>
       {importMethod === 'pdf' ? <div className="upload-row"><Field label="Study information PDF" hint="Text PDFs, up to 5 MB and 20 pages."><input type="file" accept="application/pdf,.pdf" disabled={Boolean(busy)} onChange={(event) => { setFile(event.target.files[0] || null); invalidateDraft(); }} /></Field><Button type="button" secondary disabled={!file || Boolean(busy) || !bootstrap.ai_available} onClick={() => extract('pdf')}><Upload size={15} />{busy === 'pdf' ? 'Reading PDF…' : 'Import PDF'}</Button></div> : <><Field label="Study document text"><textarea rows="5" value={source} disabled={Boolean(busy)} onChange={(event) => { setSource(event.target.value); invalidateDraft(); }} maxLength="40000" /></Field><Button className="section-action" type="button" secondary disabled={source.trim().length < 10 || Boolean(busy) || !bootstrap.ai_available} onClick={() => extract('text')}>{busy === 'text' ? 'Reading…' : 'Import text'}</Button></>}
     </details>
     <div className="ai-availability"><p className="small-note">{bootstrap.ai_available ? 'AI prepares screening and convenience from your description.' : 'Live AI is unavailable. Use the fixed example to try publication.'}</p><button type="button" className="text-button" disabled={Boolean(busy)} onClick={() => extract('sample')}>{busy === 'sample' ? 'Loading…' : 'Use fixed example'}<ArrowUpRight size={13} /></button></div>
@@ -62,13 +64,14 @@ function CreateStudy({ bootstrap, onBack, onPublish }) {
     <form onSubmit={prepare}><fieldset className="study-facts-fieldset" disabled={Boolean(busy)}><section className="form-section"><div className="form-grid">
       <Field label="Study title" wide><input value={study.title} onChange={(event) => change('title', event.target.value)} required maxLength="120" placeholder="How we make everyday decisions" /></Field>
       <Field label="Description & eligibility" wide hint="Describe the task and everyone who can or cannot take part."><textarea rows="6" value={study.description} onChange={(event) => change('description', event.target.value)} required minLength="10" maxLength="12000" placeholder="Participants complete a decision-making task. Open to adults aged 18–35 who speak English fluently and have a laptop…" /></Field>
-      <Field label="Format"><select value={study.mode} onChange={(event) => { change('mode', event.target.value); if (event.target.value === 'online') change('location', 'Online'); }}><option value="online">Online</option><option value="in_person">In person</option></select></Field>
-      <Field label="Location"><input value={study.location} onChange={(event) => change('location', event.target.value)} required maxLength="150" /></Field>
+      <Field label="Format"><select value={study.mode} onChange={(event) => { setStudy((current) => ({ ...current, mode: event.target.value, location: event.target.value === 'online' ? 'Online' : '' })); invalidateDraft(); }}><option value="online">Online</option><option value="in_person">In person</option></select></Field>
+      {study.mode === 'in_person' && <ChoiceField label="Location" value={study.location} options={bootstrap.locations} onChange={(value) => change('location', value)} />}
       <Field label="Duration (minutes)"><input type="number" min="5" max="480" required value={study.duration} onChange={(event) => change('duration', Number(event.target.value))} /></Field>
       <Field label="Compensation (£)"><input type="number" min="0" max="10000" step="0.01" required value={study.compensation} onChange={(event) => change('compensation', Number(event.target.value))} /></Field>
-    </div>{!draft && <Button className="section-action" disabled={!bootstrap.ai_available}>{busy === 'prepare' ? 'Preparing…' : 'Prepare preview'}</Button>}</section></fieldset></form>
+    </div><fieldset className="plain-fieldset"><legend>Study topics <span>(choose at least one)</span></legend><TagPicker topics={bootstrap.topics} selected={study.tags} onChange={(tags) => change('tags', tags)} /></fieldset>{!draft && <Button className="section-action" disabled={!bootstrap.ai_available}>{busy === 'prepare' ? 'Preparing…' : 'Prepare preview'}</Button>}</section></fieldset></form>
     {draft && <form onSubmit={publish}>
       <section className="form-section study-preview"><div className="section-title"><h2>Review preview</h2><span className="tag">{draft.mode === 'sample' ? 'Fixed example · no AI call' : 'AI prepared'}</span></div><h3>{draft.fields.title}</h3><p>{draft.fields.summary}</p><p className="preserve-lines">{draft.fields.description}</p><h3>Who can take part</h3><p className="preserve-lines">{draft.fields.requirements}</p>{draft.manual_review && <p className="review-decision">Participants need researcher review before booking.</p>}{draft.review_notes.length > 0 && <details className="preview-notes"><summary>Review notes ({draft.review_notes.length})</summary><ul>{draft.review_notes.map((note, index) => <li key={index}>{note}</li>)}</ul></details>}<p className="small-note">To correct this preview, edit the description above and prepare it again.</p></section>
+      <details className="source-document"><summary>Original source text</summary><p className="preserve-lines">{draft.source_text}</p></details>
       <section className="form-section"><h2>Sessions</h2><SlotsEditor slots={slots} onChange={setSlots} /></section>
       <div className="publish-section"><label className="check"><input type="checkbox" checked={approved} onChange={(event) => setApproved(event.target.checked)} required /><span>I reviewed the study details and eligibility, and approve this synthetic study.</span></label><Button disabled={Boolean(busy) || !approved}>{busy === 'publish' ? 'Publishing…' : 'Publish study'}<CheckCircle2 size={16} /></Button></div>
     </form>}

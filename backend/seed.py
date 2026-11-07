@@ -3,8 +3,40 @@ from datetime import datetime, timedelta, timezone
 
 from .auth import hash_password
 
-LANGUAGES = ["English", "French", "German", "Spanish", "Mandarin", "Hindi"]
+LANGUAGES = sorted(set("Arabic Bengali Bulgarian Cantonese Catalan Chinese Croatian Czech Danish Dutch English Estonian Farsi Finnish French German Greek Gujarati Hebrew Hindi Hungarian Indonesian Irish Italian Japanese Korean Latvian Lithuanian Malay Mandarin Marathi Nepali Norwegian Pashto Persian Polish Portuguese Punjabi Romanian Russian Serbian Slovak Spanish Swedish Tamil Telugu Thai Turkish Ukrainian Urdu Vietnamese Welsh Yoruba".split()) | {"American Sign Language", "British Sign Language"})
+LANGUAGE_LEVELS = ["Beginner", "Intermediate", "Fluent"]
 UNIVERSITIES = ["University of Oxford", "Oxford Brookes University", "University of Cambridge", "University College London", "None"]
+LOCATIONS = ["Oxford · Experimental Psychology", "Oxford · Imaging Centre", "Oxford Brookes University", "Cambridge · Department of Psychology", "London · Research Centre"]
+PRESCREEN_SECTIONS = [
+    {"title": "Additional general information", "fields": [
+        {"field": "gender", "label": "Gender", "type": "choice", "options": ["Woman", "Man", "Non-binary", "Self-describe", "Prefer not to say"]},
+        {"field": "willing_drugs", "label": "Would you consider taking a drug as part of a study?", "type": "boolean"},
+        {"field": "willing_alcohol", "label": "Would you consider drinking alcohol as part of a study?", "type": "boolean"},
+        {"field": "willing_brain_scan", "label": "Would you consider a brain scan as part of a study?", "type": "boolean"},
+        {"field": "willing_tms", "label": "Would you consider participating in a TMS study?", "type": "boolean"},
+        {"field": "parents_deaf", "label": "Are your parents deaf?", "type": "boolean"},
+        {"field": "uk_university_student", "label": "Are you currently a UK university student?", "type": "boolean"},
+    ]},
+    {"title": "Medical and safety information", "fields": [
+        {"field": "seizure_history", "label": "Have you had epilepsy, a convulsion or a seizure?", "type": "boolean"},
+        {"field": "family_seizures", "label": "Has anyone in your family had seizures?", "type": "boolean"},
+        {"field": "fainting_history", "label": "Have you had a fainting spell or syncope?", "type": "boolean"},
+        {"field": "concussion_history", "label": "Have you had a concussion or head injury with loss of consciousness?", "type": "boolean"},
+        {"field": "hearing_problems", "label": "Do you have hearing problems or ringing in your ears?", "type": "boolean"},
+        {"field": "cochlear_implants", "label": "Do you have cochlear implants?", "type": "boolean"},
+        {"field": "pregnancy_possible", "label": "Are you pregnant or could you be pregnant?", "type": "boolean"},
+        {"field": "metal_in_body", "label": "Do you have metal in your brain, skull or elsewhere in your body?", "type": "boolean"},
+        {"field": "implanted_neurostimulator", "label": "Do you have an implanted neurostimulator?", "type": "boolean"},
+        {"field": "pacemaker_or_lines", "label": "Do you have a cardiac pacemaker or intracardiac lines?", "type": "boolean"},
+        {"field": "infusion_device", "label": "Do you have a medication infusion device?", "type": "boolean"},
+        {"field": "medication_use", "label": "Do you take medications or herbal remedies?", "type": "boolean"},
+        {"field": "prior_tms", "label": "Have you undergone TMS?", "type": "boolean"},
+        {"field": "prior_mri", "label": "Have you undergone MRI?", "type": "boolean"},
+        {"field": "neurosurgery_or_eye_surgery", "label": "Have you had neurosurgery or eye surgery?", "type": "boolean"},
+        {"field": "antimalarial_treatment", "label": "Are you undergoing anti-malarial treatment?", "type": "boolean"},
+        {"field": "metal_injury", "label": "Have you sustained an injury involving metal in your eyes or body?", "type": "boolean"},
+    ]},
+]
 DEMO_PRESCREEN = dict(birth_date="2002-05-14", additional_languages=[], has_laptop=True, has_smartphone=True, has_headphones=True, comfortable_webcam=False, comfortable_audio_recording=False, comfortable_video_recording=False)
 TOPICS = ["Games & Challenges", "Puzzles & Memory Games", "Virtual Reality", "Films, TV & Music", "Food & Tasting", "Social Games & Interactions", "Brain Scans & Neurotech", "Movement & Hands-on", "Visual & Attention Challenges", "Decision-Making & Rewards", "Emotions & Relationships", "Sleep & Dreams", "Language & Words", "Technology & Digital Life", "Quizzes & Personality", "Creativity & Imagination"]
 SAMPLE_DESCRIPTION = "Attention in a distracted world. Complete a visual attention task on a laboratory computer at Oxford Experimental Psychology. One 45-minute session pays £12. Recruit participants aged 18–35 who are fluent in English, have normal or corrected-to-normal vision, and have not participated in our previous visual search experiment."

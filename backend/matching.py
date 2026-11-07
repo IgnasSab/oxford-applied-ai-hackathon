@@ -1,4 +1,7 @@
 from datetime import date
+import json
+
+from .seed import LANGUAGE_LEVELS
 
 
 def age_on_date(birth_date, on_date):
@@ -15,18 +18,35 @@ def university_name(value):
 
 
 def eligibility(participant, study, answers, review_status=None):
-    if study["manual_review"] and review_status != "approved":
-        return "manual_review", []
     questions = []
     for rule in study["rules"]:
         if rule["field"] == "age":
             value = age_on_date(date.fromisoformat(participant["birth_date"]), date.today())
+        elif rule["field"] == "language_levels":
+            target = json.loads(rule["value"])
+            language = target["language"].casefold()
+            if participant["first_language"].casefold() == language:
+                value = "Fluent"
+            else:
+                value = next((level for name, level in participant.get("language_levels", {}).items() if name.casefold() == language), None)
+                if value is None and any(name.casefold() == language for name in participant["additional_languages"]):
+                    value = "Fluent"
+                if value is None:
+                    value = answers.get(rule["id"])
         else:
-            value = answers.get(rule["id"]) if rule["field"] == "question" else participant[rule["field"]]
+            value = participant.get(rule["field"]) if rule["field"] != "question" else None
+            if rule["field"] == "gender" and value in ("Self-describe", "Prefer not to say"):
+                value = None
+            if value is None:
+                value = answers.get(rule["id"])
+            if rule["field"] == "gender" and value in ("Self-describe", "Prefer not to say"):
+                value = None
         if value is None:
             questions.append({key: rule[key] for key in ("id", "question", "answer_type", "choices")})
             continue
-        if rule["answer_type"] == "number":
+        if rule["field"] == "language_levels":
+            passes = value in LANGUAGE_LEVELS and LANGUAGE_LEVELS.index(value) >= LANGUAGE_LEVELS.index(target["level"])
+        elif rule["answer_type"] == "number":
             bounds = [float(bound) for bound in rule["value"].split(",")]
             passes = bounds[0] <= value <= bounds[1] if rule["operator"] == "between" else value == bounds[0]
         elif rule["answer_type"] == "boolean":
@@ -41,6 +61,8 @@ def eligibility(participant, study, answers, review_status=None):
                 passes = value.strip().casefold() in accepted
         if not passes:
             return "ineligible", []
+    if study["manual_review"] and review_status != "approved":
+        return "manual_review", []
     return ("needs_screening" if questions else "eligible"), questions
 
 

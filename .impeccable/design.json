@@ -220,8 +220,8 @@
       "name": "Primary button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Main task action; indigo hover, pressed and disabled states.",
-      "html": "<button class=\"ds-button\">Save priorities</button>",
+      "description": "Main task action; indigo hover, pressed and disabled states. Preferences and questionnaire use independent explicit saves.",
+      "html": "<button class=\"ds-button\">Save preferences</button>",
       "css": ".ds-button { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-button { cursor: pointer; } .ds-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 36px; padding: 7px 13px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: white; font-size: .8125rem; font-weight: 550; white-space: nowrap; transition: background 150ms, border-color 150ms; } .ds-button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); } .ds-button:active:not(:disabled) { background: #3d338e; } .ds-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-button:disabled { cursor: not-allowed; opacity: .48; } @media (prefers-reduced-motion: reduce) { .ds-button { transition: none !important; animation: none !important; } }"
     },
     {
@@ -260,8 +260,8 @@
       "name": "Navigation",
       "kind": "nav",
       "refersTo": "navigation-item",
-      "description": "Pale rail with a text-labelled active destination.",
-      "html": "<div class=\"ds-navigation\"><nav aria-label=\"Main navigation\"><button class=\"ds-active\" aria-current=\"page\">Discover studies</button><button>My schedule</button><button>Profile &amp; preferences</button></nav></div>",
+      "description": "Collapsible left rail: 220px expanded, 195px at max-width 1150px, 72px collapsed. Logo mark remains visible; compact icons retain accessible labels. At max-width 650px, the full logo stays while the two-column destination grid hides or opens. No right preferences sidebar.",
+      "html": "<div class=\"ds-navigation\"><strong>StudyMatch</strong><nav aria-label=\"Main navigation\"><button class=\"ds-active\" aria-current=\"page\">Discover studies</button><button>My schedule</button><button>Profile &amp; preferences</button><button>Notifications</button></nav></div>",
       "css": ".ds-navigation { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-navigation { background: var(--rail); padding: 24px 13px 12px; } .ds-navigation nav { display: flex; flex-direction: column; gap: 4px; } .ds-navigation nav button { display: flex; gap: 9px; align-items: center; padding: 9px 10px; border: 0; border-radius: 5px; background: none; text-align: left; font-size: .8125rem; color: #555966; } .ds-navigation nav button:hover { background: #ededf1; color: var(--ink); } .ds-navigation nav button.ds-active { color: #5147aa; background: #e9e7f4; font-weight: 550; } .ds-navigation nav button { font-family: inherit; line-height: 1.55; cursor: pointer; } .ds-navigation nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }"
     },
     {
@@ -276,7 +276,7 @@
       "name": "Interest choices",
       "kind": "chip",
       "refersTo": "tag-picker",
-      "description": "Checkbox choices; selected appearance mirrors the React selected class.",
+      "description": "Checkbox choices for participant interests and required researcher topics; selected appearance mirrors the React selected class.",
       "html": "<div class=\"ds-tag-picker\"><label class=\"ds-selected\"><input type=\"checkbox\" checked/><span>Decision making</span></label><label><input type=\"checkbox\"/><span>Memory</span></label></div>",
       "css": ".ds-tag-picker { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-tag-picker { display: flex; flex-wrap: wrap; gap: 8px; } .ds-tag-picker label { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #dddfe7; border-radius: 5px; padding: 7px 10px; cursor: pointer; color: #5e626f; font-size: .75rem; transition: background 150ms, border-color 150ms; } .ds-tag-picker label.ds-selected { color: #5043a8; background: #f3f1ff; border-color: #c8c1ef; } .ds-tag-picker label:hover { border-color: #a8a3cc; } .ds-tag-picker input { width: 14px; height: 14px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; margin: 2px 0 0; } .ds-tag-picker input { width: 12px; height: 12px; margin-top: 0; } .ds-tag-picker input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } @media (prefers-reduced-motion: reduce) { .ds-tag-picker label { transition: none !important; animation: none !important; } }"
     },
@@ -284,8 +284,8 @@
       "name": "Import container",
       "kind": "card",
       "refersTo": "import-section",
-      "description": "Collapsible PDF/text import above the study facts.",
-      "html": "<details class=\"ds-import-section\"><summary>Import a PDF or text</summary><p>AI prepares screening and convenience from your description.</p></details>",
+      "description": "Collapsible PDF/text import above study facts. Editable text uses cleaned description and requirements; original source appears in a separate disclosure. Researcher topic or fact edits invalidate the preview.",
+      "html": "<details class=\"ds-import-section\"><summary>Simple PDF or text import</summary><p>AI prepares screening and convenience from your description.</p></details>",
       "css": ".ds-import-section { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-import-section h2 { font-size: 1rem; line-height: 1.45; font-weight: 620; letter-spacing: -.012em; } .ds-import-section h2, .ds-import-section p { margin: 0; } .ds-import-section p { color: var(--muted); } .ds-import-section { padding: 21px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 28px; background: #fcfcfe; } .ds-import-section h2 { display: flex; align-items: center; gap: 8px; font-size: .875rem; } .ds-import-section > p { margin-top: 8px; font-size: .75rem; } .ds-import-section summary { cursor: pointer; font-weight: 550; }"
     },
     {
@@ -301,11 +301,14 @@
     "northStar": "Linear-style operating workspace",
     "overview": "StudyMatch is a compact, precise workspace for research participation and recruitment. A pale neutral navigation rail, white working canvas, restrained indigo actions and aligned study rows make the task hierarchy visible without decorative imagery.\n\nThe interface is flat and quiet: crisp system-sans typography, thin dividers and small corners carry structure. Preference fit, scientific eligibility and researcher approval remain distinct concepts with explicit text. The synthetic-data disclosure stays visible on desktop and mobile.",
     "keyCharacteristics": [
-      "Fixed-width desktop rail and flexible, aligned working rows.",
+      "Collapsible left navigation and flexible, aligned working rows; no right preference panels.",
       "Restrained indigo actions on light neutral surfaces.",
-      "Text-labelled states and preference scores.",
-      "Responsive reflow with visible synthetic-data disclosure.",
-      "Optional sidebar, explicit yes/no prescreen and a green/grey week/day calendar."
+      "Text-labelled states and preference scores; inline score explanations below study content.",
+      "Responsive reflow with the logo, demo label and logout retained when navigation closes.",
+      "Direct Preferences and Prescreen questionnaire tabs; independent explicit saves without a Continue step.",
+      "Seven optional general questions and 17 optional medical/safety questions, with clear-to-unknown Yes/No controls and explicit language proficiency.",
+      "Green/grey week/day calendar and a future-bookings list beside it above 1150px or below at narrower widths.",
+      "Flat notifications list with dates and safe study links; topic and eligibility filters in discovery."
     ],
     "rules": [
       {
@@ -329,6 +332,7 @@
     "donts": [
       "Don't reintroduce the rejected cream/serif marketing hero, gradients, emoji icons or ornamental imagery.",
       "Don't replace working rows with decorative equal-card grids.",
+      "Don't reintroduce right preference panels or a Continue gate for preference editing.",
       "Don't conflate preference fit with eligibility, researcher approval or medical clearance.",
       "Don't hide mobile status or synthetic-data wording to make the layout fit.",
       "Don't promote illustrative sidecar tonal ramps into application tokens."

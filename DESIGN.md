@@ -125,7 +125,7 @@ The interface is flat and quiet: crisp system-sans typography, thin dividers and
 
 **Key Characteristics:**
 
-- Fixed-width desktop rail and flexible, aligned working rows.
+- Collapsible left navigation and flexible, aligned working rows.
 - Restrained indigo actions on light neutral surfaces.
 - Text-labelled states and preference scores.
 - Responsive reflow with visible synthetic-data disclosure.
@@ -138,7 +138,7 @@ Cool neutral surfaces and dark ink give the indigo interaction color a restraine
 
 ### Primary
 
-- **Indigo (`accent`):** primary actions, links, range thumbs, selected steps, caret and keyboard focus.
+- **Indigo (`accent`):** primary actions, links, range thumbs, selected profile tabs, caret and keyboard focus.
 - **Deep indigo (`accent-hover`):** primary-action hover background and border.
 
 ### Neutral
@@ -163,11 +163,11 @@ Headlines, section titles, body and form labels follow the frontmatter hierarchy
 
 ## Layout
 
-The desktop shell uses a fixed-width rail (220px) and a flexible main column. The rail is sticky at the viewport top and fills (100svh). The main working area is capped at (1600px), with standard page padding (32px 36px 60px). Discovery pairs flexible rows with an optional priorities column (230px) and a gap (32px). A single sidebar toggle hides priorities, next session and alerts together; the list then fills the available width. Study rows retain an aligned score column (84px). There is no workspace banner.
+The desktop shell uses a left navigation rail (220px) and a flexible main column. The rail is sticky at the viewport top and fills (100svh); closing it reduces it to an icon rail (72px) while keeping the StudyMatch logo mark, navigation icons, demo label and logout available. An accessible open/close control remains visible. Discovery and study details have no right sidebar. Study rows retain an aligned score column (84px), and score explanations use an inline disclosure below the study content. The main working area is capped at (1600px), with standard page padding (32px 36px 60px). There is no workspace banner.
 
-At (min-width: 1650px), page side padding becomes (48px), the priorities column (255px), and its gap (40px). At (max-width: 1150px), the rail is (195px), page side padding (25px), and the priorities column (205px). At (max-width: 900px), the rail is (180px); the optional sidebar moves above the list and detail sidebars move below content. The same toggle controls every sidebar section at every width.
+At (min-width: 1650px), page side padding becomes (48px). At (max-width: 1150px), the expanded rail is (195px) and page side padding becomes (25px); the collapsed rail remains (72px). Above (1150px), the calendar and upcoming-bookings list use a flexible grid column plus a (240px) list column with a (28px) gap. At (max-width: 1150px), bookings move below the calendar. The (900px) breakpoint adjusts study and researcher rows without moving a preferences panel or changing the rail width.
 
-At (max-width: 650px), the shell becomes a single column with static top navigation. The synthetic-data line occupies its own full-width navigation row at (.75rem). Page padding becomes (26px 18px 40px), search fills its row, form fields and sliders stack, calendar controls wrap, and researcher rows reflow. The calendar defaults to day view on mobile. Participant decision rows preserve the (84px) score column and allow availability and status text to wrap. Booking status is restored below the stacked booking details on mobile. Main content and flexible columns use zero minimum width to support reflow without horizontal overflow.
+At (max-width: 650px), the shell becomes a single column with static top navigation. Open navigation uses two columns of destinations; closed navigation hides those destinations while keeping the full logo, open control, demo label and logout. Page padding becomes (26px 18px 40px), search and discovery filters fill their rows, form fields stack, calendar controls wrap, and researcher rows reflow. The calendar defaults to day view on mobile. Participant decision rows preserve the (84px) score column and allow availability and status text to wrap. Booking status is restored below the stacked booking details on mobile. Main content and flexible columns use zero minimum width to support reflow without horizontal overflow.
 
 Authentication uses a centered form capped at (380px), with a (40px) total horizontal inset. Form, creation and detail pages have separate existing caps of (820px), (900px) and (1260px). Use the implemented spacing rhythm; retain compact controls and generous section separation instead of adding decorative card grids.
 
@@ -179,7 +179,7 @@ State transitions last (150ms) for button backgrounds and borders, field borders
 
 ## Shapes
 
-Small corners follow the extracted radius scale: status labels and segmented options use the smallest step; fields, navigation and interest choices use the next; primary controls, session choices and messages share the middle step. Segmented-control shells and notices use (7px); the collapsible import container uses (12px). Rows are separated by fine horizontal rules rather than rounded cards. Dots, range thumbs and step markers are circular. Lucide line icons accompany text or receive accessible labels when used alone.
+Small corners follow the extracted radius scale: status labels and segmented options use the smallest step; fields, navigation and interest choices use the next; primary controls, session choices and messages share the middle step. Segmented-control shells and notices use (7px); the collapsible import container uses (12px). Rows are separated by fine horizontal rules rather than rounded cards. Dots and range thumbs are circular. Lucide line icons accompany text or receive accessible labels when used alone.
 
 ## Components
 
@@ -195,7 +195,7 @@ Visible labels sit above white fields with a thin neutral border, minimum height
 
 ### Navigation
 
-The pale rail uses compact icon-and-text buttons. Active navigation has an indigo-tinted background, stronger text and `aria-current="page"`. Hover uses a neutral tint. Mobile replaces the rail with horizontal navigation while preserving logout and the synthetic-data disclosure.
+The pale left rail uses compact icon-and-text buttons. Active navigation has an indigo-tinted background, stronger text and `aria-current="page"`. Hover uses a neutral tint. The open/close button names its action and exposes its expanded state. Collapsed desktop icons retain accessible destination labels and tooltips; the logo mark stays visible. Mobile retains the full wordmark and hides or reveals the destination grid. Participant destinations are Discover studies, My schedule, Profile & preferences and Notifications. The demo label and logout remain available in either state.
 
 ### Chips and status labels
 
@@ -203,17 +203,23 @@ Interest choices are checkbox labels with bordered, softly rounded outlines; sel
 
 ### Containers and study rows
 
-Study rows are full-width buttons containing title, summary, compensation, duration, format and availability, with a separate right-aligned preference score. Row hover uses a subtle neutral fill. PDF/text import is a disclosure above the study facts. The AI preview uses natural-language descriptions and eligibility; raw criterion and convenience editors are absent. Researchers correct source facts and prepare a fresh preview. Session choices use borders and a tinted selected state; unavailable choices are dimmed and disabled.
+Study rows are full-width buttons containing title, summary, compensation, duration, format and availability, with a separate right-aligned preference score. Row hover uses a subtle neutral fill. “Simple PDF or text import” is a disclosure above the study facts. Imported editable text contains the cleaned description and eligibility requirements; original source text lives in a separate disclosure. The AI preview uses natural-language descriptions and eligibility; raw criterion and convenience editors are absent. Researchers choose at least one known topic and select an example or custom location only for in-person studies. Changes to facts or topics require a fresh preview. Session choices use borders and a tinted selected state; unavailable choices are dimmed and disabled.
 
-### Prescreen and calendar
+### Profile, preferences and prescreen
 
-The 14-field prescreen uses a native birth-date picker, language and university choices with an Other option, and labelled Yes/No radio buttons. No missing answer defaults to No. Additional fluent languages can be added with a button or Enter. Preferences remain a separate second step.
+Profile & preferences provides direct Preferences and Prescreen questionnaire tabs. Completed accounts open on Preferences; new accounts open on the questionnaire. No Continue step gates preference editing. “Save preferences” persists only preferences, independently of questionnaire fields. “Save questionnaire” retains previously saved preferences for existing profiles. A new account saves its questionnaire before preferences can be saved independently.
 
-FullCalendar supplies a Google Calendar-style week/day time grid with previous, next and Today controls. The full 24-hour range is scrollable; initial scroll starts around 08:00. Green (#d8eee2) marks confirmed bookings and grey (#e5e7eb) marks candidate sessions, with a legend and explicit selected-session status. Event titles take priority in short time blocks. Selecting a session shows details and a separate confirmation action; there is no drag rescheduling or Google integration.
+The prescreen uses a native birth-date picker, language and university choices with an Other option, and labelled Yes/No radio buttons. Seven additional general questions and 17 medical/safety questions are optional. Medical/safety questions live in a disclosure with fictional-data guidance and an explicit researcher-review limitation. Optional boolean answers can be cleared to unknown; no missing answer defaults to No. Additional languages use a language selector, a Beginner/Intermediate/Fluent selector and an explicit Add language action. Existing fluency is preserved; proficiency is never guessed.
+
+### Calendar and upcoming bookings
+
+FullCalendar supplies a Google Calendar-style week/day time grid with previous, next and Today controls. The full 24-hour range is scrollable; initial scroll starts around 08:00. Green (#d8eee2) marks confirmed bookings and grey (#e5e7eb) marks candidate sessions, with a legend and explicit selected-session status. Event titles take priority in short time blocks. Selecting a session shows details and a separate confirmation action; there is no drag rescheduling or Google integration. An upcoming-bookings list shows future confirmed sessions in date order, including date, time, duration and location, without requiring calendar navigation. View booking reveals session details; Study details is available when the study remains a current match. The list sits beside the calendar above (1150px) and below it at narrower widths.
 
 ### Priorities and feedback
 
-Three labelled sliders show Earnings, Interests and Convenience with values from 1–5. Moving a slider immediately updates preference scores and ordering; saving priorities remains an explicit action. The disclosure moves above the list at compact widths. Preference fit is labelled separately from eligibility and never presented as medical clearance.
+Preferences are edited only in Profile & preferences. Three labelled sliders show Earnings, Interests and Convenience with values from 1–5. “Save preferences” applies the weights and refreshes match ordering; moving a slider alone does not save it. A persisted checkbox applies format, duration, location and time preferences to browsing. Discovery keeps separate topic and eligibility filters alongside format and search; eligibility choices are All matches, Eligible immediately, Potential matches and Researcher review. Preference fit is labelled separately from eligibility and never presented as medical clearance.
+
+Notifications use flat divided rows with event type, timestamp, title and message. Match alerts, booking confirmations and review updates are identified as an in-app demonstration. A study action appears only when the study is still a current match. Empty and error states retain useful recovery text.
 
 Loading uses static skeleton rows with a status label. Empty views provide an icon, a short title and actionable text. Success notices use a dismissible status region; errors use an alert region. Researcher publication retains an explicit review checkbox and “Publish study” action. Participant review requests have pending, approved and declined states; researcher approval requires an explicit attestation that external checks are complete. Synthetic-data wording appears in the authentication footer, workspace navigation and publication context.
 
@@ -231,6 +237,7 @@ Loading uses static skeleton rows with a status label. Empty views provide an ic
 
 - Don't reintroduce the rejected cream/serif marketing hero, gradients, emoji icons or ornamental imagery.
 - Don't replace working rows with decorative equal-card grids.
+- Don't reintroduce right preference panels or a Continue gate for preference editing.
 - Don't conflate preference fit with eligibility, researcher approval or medical clearance.
 - Don't hide mobile status or synthetic-data wording to make the layout fit.
 - Don't promote illustrative sidecar tonal ramps into application tokens.

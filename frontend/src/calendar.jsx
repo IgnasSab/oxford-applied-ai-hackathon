@@ -5,9 +5,9 @@ import timeGridPlugin from '@fullcalendar/react/timegrid';
 import '@fullcalendar/react/skeleton.css';
 import '@fullcalendar/react/themes/monarch/theme.css';
 import '@fullcalendar/react/themes/monarch/palettes/purple.css';
-import { CheckCircle2, X } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { conflicts, dateLabel, timeLabel } from './api';
-import { Button, ErrorMessage, Heading } from './components';
+import { Button, Empty, ErrorMessage, Heading } from './components';
 
 const plugins = [themePlugin, timeGridPlugin];
 const toolbar = { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' };
@@ -38,6 +38,7 @@ export default function Schedule({ matches, bookings, onSelect, onBook }) {
     extendedProps: { status: entry.status },
   })), [entries, showAvailable]);
   const selected = entries.find((entry) => entry.calendar_id === selectedId);
+  const upcoming = entries.filter((entry) => !entry.available && new Date(entry.starts_at) >= new Date());
   async function book() {
     setBusy(true); setError('');
     try { await onBook(selected.id); setSelectedId(null); }
@@ -47,8 +48,8 @@ export default function Schedule({ matches, bookings, onSelect, onBook }) {
   return <div className="page calendar-page">
     <Heading title="My schedule" />
     <div className="schedule-toolbar"><div className="calendar-legend"><span><i className="confirmed-swatch" />Confirmed</span><span><i className="available-swatch" />Available</span><span>Europe/London</span></div><label className="check"><input type="checkbox" checked={showAvailable} onChange={(event) => setShowAvailable(event.target.checked)} />Show available sessions</label></div>
-    {selected && <section className="calendar-selection" aria-label="Selected session"><div><span className={`status ${selected.available ? '' : 'success'}`}>{!selected.available && <CheckCircle2 size={13} />}{selected.status}</span><h2>{selected.title}</h2><p>{dateLabel(selected.starts_at)} · {timeLabel(selected.starts_at)} · {selected.duration} min · {selected.location}</p><ErrorMessage message={error} /></div><div className="calendar-selection-actions"><Button secondary onClick={() => onSelect(selected.study_id)}>Study details</Button>{selected.available && <Button disabled={busy || selected.status !== 'Available'} onClick={book}>{busy ? 'Booking…' : 'Confirm booking'}</Button>}<button className="icon-button" aria-label="Close session details" onClick={() => { setSelectedId(null); setError(''); }}><X size={17} /></button></div></section>}
-    <div className="study-calendar"><FullCalendar
+    {selected && <section className="calendar-selection" aria-label="Selected session"><div><span className={`status ${selected.available ? '' : 'success'}`}>{!selected.available && <CheckCircle2 size={13} />}{selected.status}</span><h2>{selected.title}</h2><p>{dateLabel(selected.starts_at)} · {timeLabel(selected.starts_at)} · {selected.duration} min · {selected.location}</p><ErrorMessage message={error} /></div><div className="calendar-selection-actions">{matches.some((study) => study.id === selected.study_id) && <Button secondary onClick={() => onSelect(selected.study_id)}>Study details</Button>}{selected.available && <Button disabled={busy || selected.status !== 'Available'} onClick={book}>{busy ? 'Booking…' : 'Confirm booking'}</Button>}<button className="icon-button" aria-label="Close session details" onClick={() => { setSelectedId(null); setError(''); }}><X size={17} /></button></div></section>}
+    <div className="schedule-layout"><div><div className="study-calendar"><FullCalendar
       plugins={plugins} initialView={initialView} initialDate={initialDate} timeZone="Europe/London" firstDay={1}
       headerToolbar={toolbar} buttonText={{ today: 'Today', week: 'Week', day: 'Day' }}
       events={events} eventClick={({ event }) => { setSelectedId(event.id); setError(''); }}
@@ -59,6 +60,7 @@ export default function Schedule({ matches, bookings, onSelect, onBook }) {
       slotHeaderFormat={timeFormat} allDaySlot={false} nowIndicator editable={false} eventInteractive
       scrollTime="08:00:00" slotDuration="00:30:00" height="max(500px, calc(100dvh - 220px))"
     /></div>
-    <p className="small-note calendar-note">Select a grey session to review and confirm. Only studies you’re eligible for appear.</p>
+    <p className="small-note calendar-note">Select a grey session to review and confirm. Only studies you’re eligible for appear.</p></div>
+    <section className="upcoming-bookings" aria-label="Upcoming bookings"><h2>Upcoming bookings</h2>{upcoming.length ? upcoming.map((booking) => <article className="upcoming-booking" key={booking.id}><time dateTime={booking.starts_at}>{dateLabel(booking.starts_at)} · {timeLabel(booking.starts_at)}</time><h3>{booking.title}</h3><p>{booking.duration} min · {booking.location}</p><button className="text-button" onClick={() => { setSelectedId(booking.calendar_id); setError(''); }}>View booking<ChevronRight size={14} /></button>{matches.some((study) => study.id === booking.study_id) && <button className="text-button" onClick={() => onSelect(booking.study_id)}>Study details<ChevronRight size={14} /></button>}</article>) : <Empty icon={CalendarDays} title="No upcoming bookings">Confirmed sessions will appear here.</Empty>}</section></div>
   </div>;
 }

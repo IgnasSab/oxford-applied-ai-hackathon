@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronRight, Clock3, MapPin, Monitor, Search, SlidersHorizontal } from 'lucide-react';
+import { Bell, CalendarDays, Check, CheckCircle2, ChevronRight, Clock3, MapPin, Monitor, Search } from 'lucide-react';
 import { api, conflicts, dateLabel, formatLabel, money, scoreStudy, timeLabel } from './api';
-import { Back, BooleanField, Button, Empty, ErrorMessage, Field, Heading, Loading, NextIcon, Notice, Shell, Weights } from './components';
+import { Back, BooleanField, Button, Empty, ErrorMessage, Field, Heading, Loading, NextIcon, Notice, Shell } from './components';
 import ProfileForm from './profile';
 import Schedule from './calendar';
 
@@ -30,7 +30,7 @@ function StudyDetail({ study, weights, bookings, onBack, onScreen, onBook, onReq
     } catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
-  return <div className="page detail-page"><Back onClick={onBack} /><div className="detail-layout"><div>
+  return <div className="page detail-page"><Back onClick={onBack} />
     <Heading title={study.title} description={study.summary} />
     <div className="detail-facts"><span><strong>{money(study.compensation)}</strong>compensation</span><span><strong>{study.duration} min</strong>duration</span><span><strong>{formatLabel(study.mode)}</strong>{study.location}</span></div>
     <section className="detail-section"><h2>About this study</h2><p className="preserve-lines">{study.description}</p><div className="tag-list">{study.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div></section>
@@ -43,7 +43,23 @@ function StudyDetail({ study, weights, bookings, onBack, onScreen, onBook, onReq
         <Button disabled={busy}>{busy ? 'Checking…' : 'Check eligibility'}<NextIcon /></Button>
       </form> : <>{study.slots.length ? <form onSubmit={(event) => submit(event, 'book')}><div className="slot-options">{study.slots.map((slot) => { const clash = conflicts(slot, study.duration, bookings); return <label key={slot.id} className={`slot-option ${String(slot.id) === selectedSlot ? 'selected' : ''} ${slot.remaining === 0 || clash ? 'unavailable' : ''}`}><input type="radio" name="session" required value={slot.id} checked={String(slot.id) === selectedSlot} onChange={(event) => setSelectedSlot(event.target.value)} disabled={slot.remaining === 0 || clash} /><span><strong>{dateLabel(slot.starts_at)}</strong><small>{timeLabel(slot.starts_at)} · {study.duration} min</small></span><span className="slot-capacity">{slot.remaining === 0 ? 'Full' : clash ? 'Schedule conflict' : `${slot.remaining} places left`}</span></label>; })}</div><p className="small-note">All times Europe/London.</p><Button disabled={busy || !selectedSlot}>{busy ? 'Booking…' : 'Confirm booking'}<Check size={16} /></Button></form> : <Empty icon={CalendarDays} title="No sessions available">Check back when the researcher adds a session.</Empty>}</>}
     </section>
-  </div><aside className="detail-aside"><div className="fit-summary"><span>Preference fit</span><strong>{scoreStudy(study, weights).toFixed(1)}<small> / 5</small></strong></div><div className="score-breakdown">{[['compensation','Earnings'],['interest','Interests'],['convenience','Convenience']].map(([key,label]) => <div key={key}><span>{label}</span><strong>{study.components[key].toFixed(1)}<span> / 5</span></strong></div>)}</div><p className="small-note">{study.convenience_reason}</p><p className="small-note">Preference fit does not determine eligibility.</p></aside></div></div>;
+    <details className="detail-section match-explanation"><summary>Preference fit · {scoreStudy(study, weights).toFixed(1)} / 5</summary><div className="score-breakdown">{[['compensation','Earnings'],['interest','Interests'],['convenience','Convenience']].map(([key,label]) => <div key={key}><span>{label}</span><strong>{study.components[key].toFixed(1)}<span> / 5</span></strong></div>)}</div><p className="small-note">{study.convenience_reason}</p><p className="small-note">Preference fit does not determine eligibility.</p></details>
+  </div>;
+
+}
+
+function Notifications({ matches, onSelect }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  async function load() {
+    setLoading(true); setError('');
+    try { const result = await api('/notifications'); setNotifications(result.notifications); }
+    catch (failure) { setError(failure.message); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+  return <div className="page notifications-page"><Heading title="Notifications" description="Match alerts, booking confirmations and review updates. In-app demo only." /><ErrorMessage message={error} />{error && <Button secondary onClick={load}>Try again</Button>}{loading ? <Loading /> : notifications.length ? <div className="notification-list">{notifications.map((notification) => <article className="notification-row" key={notification.id}><div className="notification-meta"><span>{({ eligible: 'Study match', potential: 'Potential match', booking: 'Booking', review: 'Researcher review' })[notification.kind]}</span><time dateTime={notification.created_at}>{dateLabel(notification.created_at)} · {timeLabel(notification.created_at)}</time></div><h2>{notification.title}</h2><p>{notification.message}</p>{matches.some((match) => match.id === notification.study_id) && <button className="text-button" onClick={() => onSelect(notification.study_id)}>View study<ChevronRight size={14} /></button>}</article>)}</div> : !error && <Empty icon={Bell} title="No notifications yet">Your booking and review updates will appear here. Enable match alerts in Profile & preferences.</Empty>}</div>;
 }
 
 export default function Participant({ account, bootstrap, onLogout, onAccountChange }) {
@@ -56,10 +72,9 @@ export default function Participant({ account, bootstrap, onLogout, onAccountCha
   const [weights, setWeights] = useState({ interest: 3, compensation: 3, convenience: 3 });
   const [query, setQuery] = useState('');
   const [format, setFormat] = useState('any');
-  const [filterPreferences, setFilterPreferences] = useState(false);
+  const [topic, setTopic] = useState('any');
+  const [status, setStatus] = useState('any');
   const [notice, setNotice] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches);
   async function load() {
     setError(''); setLoading(true);
     try { const saved = await api('/profile'); setProfile(saved); if (saved) setWeights(saved.weights); if (account.onboarded) setData(await api('/matches')); }
@@ -71,13 +86,14 @@ export default function Participant({ account, bootstrap, onLogout, onAccountCha
     const saved = await api('/profile', 'PUT', draft);
     setProfile(saved); setWeights(saved.weights); setData(await api('/matches'));
     onAccountChange({ ...account, name: saved.name, onboarded: true });
-    setView('studies'); setSelected(null); setNotice('Profile saved.');
+    if (!account.onboarded) setView('studies');
+    setSelected(null); setNotice('Questionnaire saved.');
   }
-  async function saveWeights() {
-    setSaving(true); setError('');
-    try { const saved = await api('/profile', 'PUT', { ...profile, weights }); setProfile(saved); setData(await api('/matches')); setNotice('Priorities saved.'); }
-    catch (failure) { setError(failure.message); }
-    finally { setSaving(false); }
+  async function savePreferences(preferences) {
+    const saved = await api('/preferences', 'PATCH', preferences);
+    setProfile(saved); setWeights(saved.weights);
+    if (account.onboarded) setData(await api('/matches'));
+    setNotice('Preferences saved.');
   }
   async function screen(studyId, answers) {
     const result = await api('/answers', 'POST', { study_id: studyId, answers });
@@ -92,8 +108,10 @@ export default function Participant({ account, bootstrap, onLogout, onAccountCha
   const study = data.matches.find((match) => match.id === selected);
   const visible = data.matches.filter((match) => {
     if (format !== 'any' && match.mode !== format) return false;
+    if (topic !== 'any' && !match.tags.includes(topic)) return false;
+    if (status !== 'any' && match.status !== status) return false;
     if (!`${match.title} ${match.summary} ${match.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase())) return false;
-    if (!filterPreferences) return true;
+    if (!profile.preference_filters) return true;
     if (profile.preferred_mode !== 'any' && match.mode !== profile.preferred_mode) return false;
     if (match.duration > profile.max_duration) return false;
     if (profile.preferred_location && match.mode !== 'online' && !match.location.toLowerCase().includes(profile.preferred_location.toLowerCase())) return false;
@@ -101,16 +119,11 @@ export default function Participant({ account, bootstrap, onLogout, onAccountCha
     return true;
   }).sort((first, second) => scoreStudy(second, weights) - scoreStudy(first, weights));
   return <Shell account={account} view={view} setView={navigate} onLogout={onLogout}><Notice onClose={() => setNotice('')}>{notice}</Notice>
-    {loading ? <Loading /> : error && !profile ? <div className="page"><ErrorMessage message={error} /><Button secondary onClick={load}>Try again</Button></div> : !account.onboarded || view === 'profile' ? <ProfileForm key={account.onboarded ? 'edit' : 'onboard'} profile={profile} account={account} bootstrap={bootstrap} onSave={saveProfile} onCancel={account.onboarded ? () => navigate('studies') : null} /> : view === 'schedule' ? <Schedule matches={data.matches} bookings={data.bookings} onSelect={selectStudy} onBook={book} /> : study ? <StudyDetail key={study.id} study={study} weights={weights} bookings={data.bookings} onBack={() => setSelected(null)} onScreen={screen} onBook={book} onRequestReview={requestReview} /> : <div className="page discovery-page">
-      <Heading title="Discover studies"><Button secondary aria-expanded={sidebarOpen} aria-controls="study-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}><SlidersHorizontal size={15} />{sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}</Button></Heading><ErrorMessage message={error} />
-      <div className={`discovery-layout ${sidebarOpen ? '' : 'sidebar-hidden'}`}><section className="discovery-list"><div className="list-toolbar"><div className="segmented" aria-label="Study format">{[['any','All studies'],['online','Online'],['in_person','In person']].map(([key,label]) => <button key={key} aria-pressed={format === key} className={format === key ? 'active' : ''} onClick={() => setFormat(key)}>{label}</button>)}</div><label className="search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search studies" placeholder="Search studies" /></label></div><div className="list-caption"><span>{visible.length} studies</span>{filterPreferences && <button className="text-button" onClick={() => setFilterPreferences(false)}>Clear preference filters</button>}</div>
-        {visible.length ? <div className="study-list" aria-live="polite">{visible.map((match) => <StudyRow key={match.id} study={match} weights={weights} onSelect={selectStudy} />)}</div> : <Empty title="No studies in this view">Try another format, clear your search, or turn off preference filters.</Empty>}
+    {loading ? <Loading /> : error && !profile ? <div className="page"><ErrorMessage message={error} /><Button secondary onClick={load}>Try again</Button></div> : !account.onboarded || view === 'profile' ? <ProfileForm key={account.onboarded ? 'edit' : 'onboard'} profile={profile} account={account} bootstrap={bootstrap} onSave={saveProfile} onSavePreferences={savePreferences} onCancel={account.onboarded ? () => navigate('studies') : null} /> : view === 'schedule' ? <Schedule matches={data.matches} bookings={data.bookings} onSelect={selectStudy} onBook={book} /> : view === 'notifications' ? <Notifications matches={data.matches} onSelect={selectStudy} /> : study ? <StudyDetail key={study.id} study={study} weights={weights} bookings={data.bookings} onBack={() => setSelected(null)} onScreen={screen} onBook={book} onRequestReview={requestReview} /> : <div className="page discovery-page">
+      <Heading title="Discover studies" /><ErrorMessage message={error} />
+      <section className="discovery-list"><div className="list-toolbar"><div className="segmented" aria-label="Study format">{[['any','All studies'],['online','Online'],['in_person','In person']].map(([key,label]) => <button key={key} aria-pressed={format === key} className={format === key ? 'active' : ''} onClick={() => setFormat(key)}>{label}</button>)}</div><label className="search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search studies" placeholder="Search studies" /></label></div><div className="study-filters"><Field label="Topic"><select value={topic} onChange={(event) => setTopic(event.target.value)}><option value="any">All topics</option>{bootstrap.topics.map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Eligibility"><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="any">All matches</option><option value="eligible">Eligible immediately</option><option value="needs_screening">Potential matches</option><option value="manual_review">Researcher review</option></select></Field></div><div className="list-caption"><span>{visible.length} {visible.length === 1 ? 'study' : 'studies'}</span>{profile.preference_filters && <button className="text-button" onClick={() => navigate('profile')}>Preference filters on · Edit</button>}</div>
+        {visible.length ? <div className="study-list" aria-live="polite">{visible.map((match) => <StudyRow key={match.id} study={match} weights={weights} onSelect={selectStudy} />)}</div> : <Empty title="No studies in this view">Try another topic, format or eligibility filter, or update your preferences.</Empty>}
       </section>
-      {sidebarOpen && <aside id="study-sidebar" className="priorities-aside"><section className="priorities-content"><h2>Your priorities</h2><Weights weights={weights} onChange={setWeights} /><Button secondary className="full-width" disabled={saving || JSON.stringify(weights) === JSON.stringify(profile.weights)} onClick={saveWeights}>{saving ? 'Saving…' : 'Save priorities'}</Button><label className="check filter-check"><input type="checkbox" checked={filterPreferences} onChange={(event) => setFilterPreferences(event.target.checked)} />Use my format, duration, time and location preferences</label><button className="text-button" onClick={() => navigate('profile')}>Edit preferences<ArrowUpRight size={13} /></button></section>
-        <section className="aside-section"><div className="section-title"><h3>Next session</h3><CalendarDays size={15} /></div>{data.bookings.length ? <><strong>{data.bookings[0].title}</strong><p>{dateLabel(data.bookings[0].starts_at)} · {timeLabel(data.bookings[0].starts_at)}</p><button className="text-button" onClick={() => navigate('schedule')}>Open schedule<ArrowUpRight size={13} /></button></> : <p>No bookings yet.</p>}</section>
-        <section className="aside-section"><div className="section-title"><h3>Demo alerts</h3><Bell size={15} /></div>{profile.notifications === 'off' ? <p>Off</p> : data.notifications.length ? data.notifications.slice(0,2).map((notification) => <button className="notification-item" key={notification.id} onClick={() => selectStudy(notification.study_id)}><strong>{notification.title}</strong><span>View suggested study</span></button>) : <p>No new alerts.</p>}</section>
-      </aside>}
-      </div>
     </div>}
   </Shell>;
 }

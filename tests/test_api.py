@@ -83,7 +83,7 @@ def study_input(**changes):
 
 def publish(researcher, **changes):
     study = study_input(**changes)
-    author = {key: study[key] for key in ("title", "description", "mode", "location", "duration", "compensation")}
+    author = {key: study[key] for key in ("title", "description", "mode", "location", "duration", "compensation", "tags")}
     author["description"] += "\n" + study["requirements"] + "\n" + "\n".join(item["source"] for item in study["rules"])
     with pytest.MonkeyPatch.context() as monkeypatch:
         mock_ai(monkeypatch, study=study)
@@ -405,9 +405,9 @@ def mock_ai(monkeypatch, *, study=None, source="aged 18-35", **field_changes):
     return calls
 
 
-def test_pdf_extracts_text_and_uses_structured_ai_without_profiles(researcher, monkeypatch):
+def test_pdf_extracts_text_and_uses_structured_ai_without_profiles(researcher, participant, monkeypatch):
     calls = mock_ai(monkeypatch)
-    source = "Visual puzzle study. Recruit people aged 18-35. One online 30-minute session, paying GBP10."
+    source = "Department of Experimental Psychology. Study Information. Page 1 of 3. Visual puzzle study. Recruit people aged 18-35. One online 30-minute session, paying GBP10. View Time Slots. Privacy Policy."
     response = researcher.post("/api/extract/pdf", files={"file": ("study.pdf", text_pdf(source), "application/pdf")})
     assert response.status_code == 200, response.text
     draft = response.json()
@@ -419,6 +419,17 @@ def test_pdf_extracts_text_and_uses_structured_ai_without_profiles(researcher, m
     assert source in str(calls[0]["input"])
     assert "I enjoy visual puzzles." not in str(calls[0]["input"])
     assert "participant@studymatch.demo" not in str(calls[0]["input"])
+    assert draft["fields"]["description"] == study_input()["description"]
+    with main.database() as connection:
+        saved = json.loads(connection.execute("SELECT data FROM drafts WHERE id=?", (draft["draft_id"],)).fetchone()["data"])
+    assert source in saved["source_text"]
+    assert saved["fields"]["description"] == draft["fields"]["description"]
+    published = researcher.post("/api/studies", json=draft_payload(draft))
+    assert published.status_code == 201, published.text
+    match = match_for(participant, published.json())
+    assert match["description"] == draft["fields"]["description"]
+    assert "source_text" not in match
+    assert "Privacy Policy" not in match["description"]
 
 
 def test_ai_safety_lock_cannot_be_overridden_at_publication(researcher, participant, monkeypatch):
@@ -447,7 +458,7 @@ def test_ungrounded_ai_criteria_require_manual_review(researcher, monkeypatch):
 
 def test_preparation_owns_rules_and_convenience_without_profile_input(researcher, monkeypatch):
     source = "Complete a browser puzzle task. Recruit people aged 18-35."
-    authored = dict(title="Visual puzzle session", description=source, mode="online", location="Online", duration=30, compensation=10)
+    authored = dict(title="Visual puzzle session", description=source, mode="online", location="Online", duration=30, compensation=10, tags=["Puzzles & Memory Games"])
     assert researcher.post("/api/studies/prepare", json=authored).status_code == 503
     calls = mock_ai(monkeypatch, convenience_score=4.6)
     assert researcher.post("/api/studies/prepare", json=dict(authored, convenience_score=1)).status_code == 422
@@ -621,3 +632,232 @@ def test_researcher_can_add_future_distinct_sessions_only_to_owned_study(client,
     assert response.status_code in (200, 201), response.text
     assert len(response.json()["slots"]) == 1
     assert researcher.post(path, json=payload).status_code in (409, 422)
+
+
+def preferences_input(**changes):
+    profile = profile_input()
+    preferences = {key: profile[key] for key in ("interests", "preferred_mode", "preferred_location", "max_duration", "preferred_times", "notifications", "weights")}
+    preferences["preference_filters"] = False
+    preferences.update(changes)
+    return preferences
+
+
+def test_optional_prescreen_keeps_existing_profiles_complete_and_answers_private(client, participant, researcher):
+    account = participant.get("/api/auth/me").json()
+    old_profile = profile_input()
+    with main.database() as connection:
+        connection.execute("UPDATE participants SET data=? WHERE user_id=?", (json.dumps(old_profile), account["id"]))
+    assert participant.get("/api/auth/me").json()["onboarded"] is True
+    profile = participant.get("/api/profile").json()
+    assert profile["gender"] is None and profile["seizure_history"] is None
+    assert profile["language_levels"] == {"French": "Fluent"}
+    bootstrap = participant.get("/api/bootstrap").json()
+    fields = [field for section in bootstrap["prescreen_sections"] for field in section["fields"]]
+    assert {"gender", "parents_deaf", "willing_tms", "uk_university_student", "seizure_history", "metal_injury"}.issubset({field["field"] for field in fields})
+    assert len(next(section["fields"] for section in bootstrap["prescreen_sections"] if "safety" in section["title"].lower())) == 17
+    assert bootstrap["language_levels"] == ["Beginner", "Intermediate", "Fluent"]
+    assert bootstrap["locations"]
+    changed = dict(profile, gender="Woman", parents_deaf=False, uk_university_student=True,
+                   seizure_history=False, pregnancy_possible=None, medication_use=True,
+                   language_levels={"French": "Fluent", "German": "Beginner"})
+    response = participant.put("/api/profile", json=changed)
+    assert response.status_code == 200, response.text
+    assert participant.put("/api/profile", json=dict(changed, seizure_history="false")).status_code == 422
+    saved = participant.get("/api/profile").json()
+    assert saved["medication_use"] is True and saved["pregnancy_possible"] is None
+    with TestClient(main.app) as reopened:
+        login(reopened, account["email"])
+        assert reopened.get("/api/profile").json() == saved
+    with main.database() as connection:
+        stored = json.loads(connection.execute("SELECT data FROM participants WHERE user_id=?", (account["id"],)).fetchone()["data"])
+    assert stored["seizure_history"] is False and stored["language_levels"]["German"] == "Beginner"
+    signup(client, "private-prescreen@example.test")
+    assert client.get("/api/profile").json() is None
+    assert researcher.get("/api/profile").status_code == 403
+    dashboard = researcher.get("/api/researcher/studies").text
+    assert all(field not in dashboard for field in ("seizure_history", "medication_use", "language_levels"))
+    medical = publish(researcher, title="Synthetic MRI session", description="Attend a synthetic MRI scanning session.", manual_review=True)
+    assert match_for(participant, medical)["status"] == "manual_review"
+
+
+def test_preferences_save_independently_and_preserve_prescreen_answers_and_bookings(client, researcher, participant):
+    participant_id = participant.get("/api/auth/me").json()["id"]
+    assert participant.put("/api/profile", json=profile_input(gender="Woman", medication_use=True)).status_code == 200
+    study = publish(researcher, rules=[rule("previous")])
+    assert participant.post("/api/answers", json={"study_id": study["id"], "answers": {"previous": False}}).status_code == 200
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 201
+    before = participant.get("/api/profile").json()
+    with main.database() as connection:
+        answers_before = connection.execute("SELECT data FROM answers WHERE participant_id=? AND study_id=?", (participant_id, study["id"])).fetchone()["data"]
+    preferences = preferences_input(interests=["Language & Words"], preferred_mode="online", preferred_location="Oxford", preference_filters=True,
+                                    notifications="weekly", weights=dict(interest=5, compensation=2, convenience=1))
+    response = participant.patch("/api/preferences", json=preferences)
+    assert response.status_code == 200, response.text
+    saved = response.json()
+    assert {key: saved[key] for key in preferences} == preferences
+    assert {key: saved[key] for key in before if key not in preferences} == {key: value for key, value in before.items() if key not in preferences}
+    assert any(booking["study_id"] == study["id"] for booking in get_matches(participant)["bookings"])
+    with main.database() as connection:
+        assert connection.execute("SELECT data FROM answers WHERE participant_id=? AND study_id=?", (participant_id, study["id"])).fetchone()["data"] == answers_before
+    partial = participant.patch("/api/preferences", json={"weights": {"interest": 4}})
+    assert partial.status_code == 200, partial.text
+    assert partial.json()["weights"] == dict(interest=4, compensation=2, convenience=1)
+    assert {key: value for key, value in partial.json().items() if key != "weights"} == {key: value for key, value in saved.items() if key != "weights"}
+    saved = partial.json()
+    assert researcher.patch("/api/preferences", json=preferences).status_code == 403
+    assert client.patch("/api/preferences", json=preferences).status_code == 401
+    assert participant.patch("/api/preferences", json=dict(preferences, medication_use=False)).status_code == 422
+    assert participant.patch("/api/preferences", json=dict(preferences, interests=["Invented topic"])).status_code == 422
+    assert participant.get("/api/profile").json() == saved
+
+
+def test_researcher_topics_override_ai_and_online_location_is_optional(researcher, monkeypatch):
+    calls = mock_ai(monkeypatch, tags=["Puzzles & Memory Games"])
+    authored = dict(title="Language session", description="Recruit people aged 18-35 for a word task.", mode="online", duration=30, compensation=10, tags=["Language & Words"])
+    for invalid in ([], ["Invented topic"], ["Language & Words", "Language & Words"]):
+        assert researcher.post("/api/studies/prepare", json=dict(authored, tags=invalid)).status_code == 422
+    assert calls == []
+    for location in (None, "", "  "):
+        payload = authored if location is None else dict(authored, location=location)
+        response = researcher.post("/api/studies/prepare", json=payload)
+        assert response.status_code == 200, response.text
+        assert response.json()["fields"]["location"] == "Online"
+        assert response.json()["fields"]["tags"] == ["Language & Words"]
+    draft = response.json()
+    assert researcher.post("/api/studies", json=draft_payload(draft, tags=["Puzzles & Memory Games"])).status_code == 422
+    published = researcher.post("/api/studies", json=draft_payload(draft))
+    assert published.status_code == 201, published.text
+    assert published.json()["tags"] == ["Language & Words"]
+    for location in (None, "", "  "):
+        payload = dict(authored, mode="in_person")
+        if location is not None:
+            payload["location"] = location
+        assert researcher.post("/api/studies/prepare", json=payload).status_code == 422
+    response = researcher.post("/api/studies/prepare", json=dict(authored, mode="in_person", location="Oxford · Experimental Psychology"))
+    assert response.status_code == 200, response.text
+    assert response.json()["fields"]["location"] == "Oxford · Experimental Psychology"
+
+
+def test_known_failure_wins_over_missing_questions_and_human_review(researcher, participant):
+    study = publish(researcher, manual_review=True, rules=[
+        rule("previous"),
+        rule("older", "number", "between", "70,90", field="age", source="Participants aged 70-90."),
+    ])
+    assert study["id"] not in {item["id"] for item in get_matches(participant)["matches"]}
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
+    assert participant.post("/api/answers", json={"study_id": study["id"], "answers": {"previous": False}}).status_code == 422
+
+
+def test_missing_optional_general_answer_is_asked_and_persisted_only_for_that_study(researcher, participant):
+    study = publish(researcher, rules=[rule("student", value="true", field="uk_university_student", question="Are you a UK-based university student?", source="Participants must be UK-based university students.")])
+    profile = participant.get("/api/profile").json()
+    assert profile["uk_university_student"] is None
+    match = match_for(participant, study)
+    assert match["status"] == "needs_screening"
+    assert [question["id"] for question in match["questions"]] == ["student"]
+    response = participant.post("/api/answers", json={"study_id": study["id"], "answers": {"student": True}})
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "eligible"
+    assert participant.get("/api/profile").json()["uk_university_student"] is None
+    assert match_for(participant, study)["questions"] == []
+    assert participant.put("/api/profile", json=dict(profile, uk_university_student=False)).status_code == 200
+    assert study["id"] not in {item["id"] for item in get_matches(participant)["matches"]}
+
+
+def test_language_proficiency_uses_exact_language_and_only_asks_unknown_levels(client, researcher, participant):
+    study = publish(researcher, rules=[rule(
+        "french", "choice", "language_at_least", json.dumps({"language": "French", "level": "Intermediate"}),
+        field="language_levels", choices=["None", "Beginner", "Intermediate", "Fluent"],
+        question="What is your French proficiency?", source="Participants need at least intermediate French.",
+    )])
+    for profile in (
+        profile_input(language_levels={"French": "Intermediate"}),
+        profile_input(language_levels={"french": "Fluent"}),
+        profile_input(first_language="French", language_levels={}),
+    ):
+        assert participant.put("/api/profile", json=profile).status_code == 200
+        assert match_for(participant, study)["status"] == "eligible"
+    assert participant.put("/api/profile", json=profile_input(language_levels={"French": "Beginner"})).status_code == 200
+    assert study["id"] not in {item["id"] for item in get_matches(participant)["matches"]}
+    profile = profile_input(language_levels={"French sign language": "Fluent"})
+    assert participant.put("/api/profile", json=profile).status_code == 200
+    match = match_for(participant, study)
+    assert match["status"] == "needs_screening"
+    assert match["questions"] == [{"id": "french", "question": "What is your French proficiency?", "answer_type": "choice", "choices": ["None", "Beginner", "Intermediate", "Fluent"]}]
+    assert participant.post("/api/answers", json={"study_id": study["id"], "answers": {"french": "Advanced"}}).status_code == 422
+    assert participant.post("/api/answers", json={"study_id": study["id"], "answers": {"french": "Intermediate"}}).json() == {"status": "eligible"}
+    assert participant.get("/api/profile").json()["language_levels"] == profile["language_levels"]
+    assert participant.put("/api/profile", json=profile_input(language_levels={"French": "Beginner"})).status_code == 200
+    assert study["id"] not in {item["id"] for item in get_matches(participant)["matches"]}
+    signup(client, "no-french@example.test")
+    assert client.put("/api/profile", json=profile_input(language_levels={})).status_code == 200
+    assert match_for(client, study)["status"] == "needs_screening"
+    assert client.post("/api/answers", json={"study_id": study["id"], "answers": {"french": "None"}}).json() == {"status": "ineligible"}
+
+
+def test_notifications_opt_in_persist_deduplicate_and_suppress_stale_matches(client, researcher, participant):
+    assert participant.put("/api/profile", json=profile_input()).status_code == 200
+    eligible = publish(researcher, rules=[rule("age", "number", "between", "18,35", field="age", source="Participants aged 18-35.")])
+    potential = publish(researcher, rules=[rule("previous")])
+    studied_ids = {eligible["id"], potential["id"]}
+    assert participant.get("/api/notifications").json() == {"notifications": []}
+    assert participant.patch("/api/preferences", json={"notifications": "immediate"}).status_code == 200
+    response = participant.get("/api/notifications")
+    assert response.status_code == 200, response.text
+    alerts = [item for item in response.json()["notifications"] if item["study_id"] in studied_ids]
+    assert {(item["study_id"], item["kind"]) for item in alerts} == {(eligible["id"], "eligible"), (potential["id"], "potential")}
+    assert all(set(item) == {"id", "study_id", "kind", "title", "message", "created_at"} for item in alerts)
+    assert all(item["title"] and item["message"] and datetime.fromisoformat(item["created_at"]).tzinfo for item in alerts)
+    assert [item["created_at"] for item in alerts] == sorted((item["created_at"] for item in alerts), reverse=True)
+    repeated = [item for item in participant.get("/api/notifications").json()["notifications"] if item["study_id"] in studied_ids]
+    assert repeated == alerts
+    assert [item for item in get_matches(participant)["notifications"] if item["study_id"] in studied_ids] == alerts
+    participant_id = participant.get("/api/auth/me").json()["id"]
+    with main.database() as connection:
+        saved = [dict(row) for row in connection.execute("SELECT id,participant_id,study_id,kind FROM notifications WHERE study_id IN (?,?)", tuple(studied_ids))]
+    assert {item["id"] for item in saved} == {item["id"] for item in alerts}
+    assert {item["participant_id"] for item in saved} == {participant_id}
+    assert researcher.get("/api/notifications").status_code == 403
+    assert client.get("/api/notifications").status_code == 401
+    signup(client, "notification-isolation@example.test")
+    assert client.put("/api/profile", json=profile_input()).status_code == 200
+    assert client.get("/api/notifications").json() == {"notifications": []}
+    assert participant.post("/api/answers", json={"study_id": potential["id"], "answers": {"previous": True}}).json() == {"status": "ineligible"}
+    assert potential["id"] not in {item["study_id"] for item in participant.get("/api/notifications").json()["notifications"]}
+    assert participant.put("/api/profile", json=profile_input(birth_date=birth_date_for_age(70), notifications="immediate")).status_code == 200
+    assert not studied_ids.intersection(item["study_id"] for item in participant.get("/api/notifications").json()["notifications"])
+    with main.database() as connection:
+        assert connection.execute("SELECT count(*) FROM notifications WHERE study_id IN (?,?)", tuple(studied_ids)).fetchone()[0] == 2
+    assert participant.patch("/api/preferences", json={"notifications": "off"}).status_code == 200
+    assert participant.get("/api/notifications").json() == {"notifications": []}
+
+
+def test_booking_and_review_notifications_persist_when_match_alerts_are_off(client, researcher, participant):
+    assert participant.put("/api/profile", json=profile_input()).status_code == 200
+    study = publish(researcher, rules=[rule("age", "number", "between", "18,35", field="age", source="Participants aged 18-35.")])
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 201
+    review_study = publish(researcher, manual_review=True)
+    response = participant.post("/api/review-requests", json={"study_id": review_study["id"], "note": "Please arrange the external checks."})
+    assert response.status_code == 201, response.text
+    request = response.json()
+    decision_path = f"/api/review-requests/{request['id']}/decision"
+    decision = dict(decision="approved", note="External checks completed.", eligibility_checked=True)
+    assert researcher.post(decision_path, json=decision).status_code == 200
+    assert researcher.post(decision_path, json=decision).status_code == 409
+    alerts = participant.get("/api/notifications").json()["notifications"]
+    assert {(item["study_id"], item["kind"]) for item in alerts} == {(study["id"], "booking"), (review_study["id"], "review")}
+    assert len(alerts) == 2
+    assert participant.get("/api/notifications").json()["notifications"] == alerts
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
+    assert participant.get("/api/notifications").json()["notifications"] == alerts
+    account = participant.get("/api/auth/me").json()
+    with TestClient(main.app) as reopened:
+        login(reopened, account["email"])
+        assert reopened.get("/api/notifications").json()["notifications"] == alerts
+    signup(client, "transaction-notification-isolation@example.test")
+    assert client.put("/api/profile", json=profile_input()).status_code == 200
+    assert client.get("/api/notifications").json() == {"notifications": []}
+    assert participant.put("/api/profile", json=profile_input(birth_date=birth_date_for_age(70))).status_code == 200
+    retained = participant.get("/api/notifications").json()["notifications"]
+    assert {item["id"] for item in retained} == {item["id"] for item in alerts}
+    assert next(item for item in retained if item["kind"] == "booking")["study_id"] is None
