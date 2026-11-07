@@ -28,7 +28,7 @@ Evaluate known ordinary-rule failures first; omit ineligible studies even if ano
 
 Question: `{id,question,answer_type:"boolean"|"number"|"choice",choices}`. Expected answers stay private. POST `/api/answers` `{study_id,answers}` persists study-specific answers and returns `{status}`. Reuse known profile fields; university aliases are normalized. Language rules use `field:"language_levels",operator:"language_at_least",answer_type:"choice",value:'{"language":"French","level":"Intermediate"}'` and choices `["None","Beginner","Intermediate","Fluent"]`. Known proficiency is compared; unknown proficiency receives a targeted question.
 
-Ranking is the participant-weighted mean of interest overlap, hourly earnings and saved AI convenience, each 1–5; no per-participant model calls. Topic and match-status filters are frontend views. Saved optional format/location/duration/time filters never change scientific eligibility; location is text matching, not geolocation.
+Ranking is the participant-weighted mean of interest overlap, hourly earnings and saved AI convenience, each 1–5; no per-participant model calls. Topic and match-status filters are frontend views. Legacy format/location/duration/time preference fields remain stored for compatibility but are no longer applied by discovery.
 
 POST `/api/bookings` `{slot_id}` returns `{id,title,starts_at}`. Preserve atomic capacity, overlapping-time, duplicate-study, past-slot and eligibility guards. Confirmed bookings persist independently of later discovery filters.
 
@@ -54,7 +54,7 @@ GET `/api/notifications` returns `{notifications:[{id,study_id,kind,title,messag
 
 ## UI contract
 
-Collapsible left navigation retains the logo. No right preference or score sidebar. Profile and preferences are directly accessible with separate save actions; no Continue gate for editing preferences. Discovery combines format/search with topic and match-state filters. Notifications has its own page. Calendar has week/day navigation, green confirmed bookings, grey available sessions, explicit confirmation and an adjacent upcoming-bookings list (stacked on mobile). No external calendar synchronization.
+Collapsible left navigation retains the logo without a participant/researcher label beneath it. No right preference or score sidebar. Signup submits the questionnaire, interests and priority weights together before discovery. Completed profiles retain direct tabs and separate saves. The medical questionnaire and format/location/duration/time/notification preference controls are removed from the UI; their stored data and API fields remain compatible. Discovery combines format/search with topic and match-state filters. Notifications has its own page. Calendar has week/day navigation, 90px minimum half-hour rows, wrapped titles, green confirmed bookings, grey available sessions, explicit confirmation and an adjacent upcoming-bookings list (stacked on mobile). No external calendar synchronization.
 
 Login slogan: Find the right research, without the search. Researcher import label: Simple PDF or text import.
 

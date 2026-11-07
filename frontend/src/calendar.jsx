@@ -55,7 +55,7 @@ export default function Schedule({ matches, bookings, onSelect, onBook }) {
       events={events} eventClick={({ event }) => { setSelectedId(event.id); setError(''); }}
       eventContent={({ event, timeText }) => <div className="calendar-event-copy" title={`${event.title} · ${timeText} · ${event.extendedProps.status}`}><strong>{event.title}</strong><span>{timeText}</span></div>}
       eventClass="study-calendar-event" toolbarClass="calendar-controls" toolbarTitleClass="calendar-title"
-      slotLaneClass="calendar-time-row" dayHeaderClass="calendar-day-heading"
+      slotMinHeight={90} eventMinHeight={90} dayHeaderClass="calendar-day-heading"
       dayHeaderFormat={{ weekday: 'short', day: 'numeric' }} eventTimeFormat={timeFormat}
       slotHeaderFormat={timeFormat} allDaySlot={false} nowIndicator editable={false} eventInteractive
       scrollTime="08:00:00" slotDuration="00:30:00" height="max(500px, calc(100dvh - 220px))"

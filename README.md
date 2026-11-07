@@ -29,13 +29,13 @@ Each score component is between 1 and 5:
 - Interest = 1 + 4 × (shared topic count / participant's selected topic count); 1 when no interests are selected.
 - Earnings = 1 + 4 × min(hourly compensation / £25, 1).
 - Convenience = the stored AI rating of study burden, from 1 (specialist preparation/high burden) to 5 (short online session with little setup).
-- Final preference score = weighted mean of those three components, rounded to one decimal. The three weights are edited only in Profile & preferences. This is not an eligibility probability.
+- Final preference score = weighted mean of those three components, rounded to one decimal. The three weights are selected during signup and edited in Profile & preferences. This is not an eligibility probability.
 
-Location, format, duration and preferred times are optional filters enabled from preferences. Location uses a text match, not distance/geolocation. Discovery also filters by topic and eligibility state. Notifications are participant-scoped SQLite records for matches, bookings and review decisions; match alerts respect opt-in and are deduplicated. Delivery/frequency remains an in-app demonstration, with no external messages.
+Discovery filters by format, topic and eligibility state. The extra location/duration/time preference controls and their hidden filtering behavior are removed; interests and priority weights remain. Notifications are participant-scoped SQLite records for matches, bookings and review decisions; match alerts respect opt-in and are deduplicated. Delivery/frequency remains an in-app demonstration, with no external messages.
 
 ## Accounts and demo
 
-Create an account using email and password and choose Participant or Researcher. Participants complete the core prescreen before browsing and can edit preferences directly. Accounts, profiles, reviewed studies, answers, sessions, bookings and notifications persist in ignored `backend/studymatch-v2.sqlite3`. Existing accounts keep their data and bookings. New general/medical questions are optional and do not force completed profiles through onboarding again. Use fictional answers in the demo.
+Create an account using email and password and choose Participant or Researcher. Participants complete the core prescreen before browsing and can edit preferences directly. Accounts, profiles, reviewed studies, answers, sessions, bookings and notifications persist in ignored `backend/studymatch-v2.sqlite3`. Existing accounts keep their data and bookings. Additional general questions are optional. The medical questionnaire is removed from the interface; existing stored answers are preserved. Use fictional answers in the demo.
 
 Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
@@ -44,8 +44,8 @@ Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
 Demo flow:
 
-1. Sign up as a participant; complete the core prescreen using birth date and explicit Yes/No answers. Additional general and medical questions are optional; additional languages have proficiency levels.
-2. Open Profile & preferences to save interests, filters and priority sliders directly, independently of the prescreen. Browse studies by format, topic and eligibility state.
+1. Sign up as a participant; complete the core prescreen, select interests and adjust priorities in the same form, then choose Find studies. Additional general questions are optional; additional languages have proficiency levels.
+2. Open Profile & preferences to edit interests and priority sliders directly, independently of the prescreen. Browse studies by format, topic and eligibility state.
 3. Open a potential match and answer only remaining questions. The calendar shows booked sessions in green and available sessions in grey, with upcoming bookings listed beside it.
 4. Sign in as researcher. Enter study facts or use Simple PDF or text import. Choose topics and, for an in-person study, location. AI prepares a cleaned description and screening. Review, add slots and publish.
 5. View matching alerts, booking confirmations and review decisions on Notifications. Studies needing human review offer a request button and an owned researcher review queue.
@@ -56,7 +56,7 @@ The combined version ports the broader questionnaire, language proficiency, topi
 
 - Frontend owner: `frontend/`. Backend owner: `backend/`. Product/pitch owner: demo story and rehearsal. Fourth teammate: evaluation/integration. Read [API contract](docs/api-contract.md) before changes; avoid shared-file edits in parallel.
 - Run `.\.venv\Scripts\python.exe -m pytest -q` and `npm --prefix frontend run build` before handoff.
-- Earnings uses hourly compensation, interest uses shared tags, convenience is a fixed AI-generated 1–5 study rating. The explicitly labelled offline fixture and seeded examples use fixed synthetic scores. Weighted average is calculated without participant-specific model calls. Preferences filter/rank; eligibility uses explicit rules.
+- Earnings uses hourly compensation, interest uses shared tags, convenience is a fixed AI-generated 1–5 study rating. The explicitly labelled offline fixture and seeded examples use fixed synthetic scores. Weighted average is calculated without participant-specific model calls. Preferences rank; eligibility uses explicit rules.
 - Local hackathon demo with synthetic data. Real password/session authentication, but no email verification, password recovery, production deployment, payments, external calendar sync, OCR, or multi-session booking.
 - Notifications are simulated in-app. Medical, safety-sensitive, conditional or unresolved criteria block automatic booking until a researcher records completed external eligibility/safety checks for that participant. Ordinary screening rules and booking safeguards still apply. AI does not grant clinical clearance.
 - Design context: [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md). The broader [project brief](STUDYMATCH_PROJECT_BRIEF.md) includes future scope beyond this demo.

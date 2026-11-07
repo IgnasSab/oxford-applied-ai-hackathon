@@ -26,17 +26,17 @@ export default function ProfileForm({ profile, account, bootstrap, onSave, onSav
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      if (tab === 'preferences' && profile) await onSavePreferences(Object.fromEntries(preferenceFields.map((key) => [key, draft[key]])));
-      else await onSave(profile ? { ...draft, ...Object.fromEntries(preferenceFields.map((key) => [key, profile[key]])) } : draft);
+      if (account.onboarded && tab === 'preferences') await onSavePreferences({ interests: draft.interests, weights: draft.weights });
+      else await onSave(account.onboarded ? { ...draft, ...Object.fromEntries(preferenceFields.map((key) => [key, profile[key]])) } : draft);
     } catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
   const optionalQuestions = (fields) => <div className="form-grid">{fields.map(({ field, label, type, options }) => type === 'boolean' ? <BooleanField key={field} label={label} required={false} value={draft[field]} onChange={(value) => update(field, value)} /> : <Field key={field} label={label}><select value={draft[field] === null ? '' : draft[field]} onChange={(event) => update(field, event.target.value || null)}><option value="">Prefer not to answer</option>{options.map((option) => <option key={option}>{option}</option>)}</select></Field>)}</div>;
   return <div className="page form-page">
     <Heading title={account.onboarded ? 'Profile & preferences' : 'Complete your profile'} description="Use fictional details in this demo." />
-    <div className="profile-tabs" role="tablist" aria-label="Profile settings">{[['preferences', 'Preferences'], ['prescreen', 'Prescreen questionnaire']].map(([key, label]) => <button key={key} type="button" role="tab" id={`tab-${key}`} aria-selected={tab === key} aria-controls="profile-panel" className={tab === key ? 'active' : ''} onClick={() => { setTab(key); setError(''); }}>{label}</button>)}</div>
-    <form onSubmit={submit} id="profile-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}><ErrorMessage message={error} />
-      {tab === 'prescreen' ? <>
+    {account.onboarded && <div className="profile-tabs" role="tablist" aria-label="Profile settings">{[['preferences', 'Preferences'], ['prescreen', 'Prescreen questionnaire']].map(([key, label]) => <button key={key} type="button" role="tab" id={`tab-${key}`} aria-selected={tab === key} aria-controls="profile-panel" className={tab === key ? 'active' : ''} onClick={() => { setTab(key); setError(''); }}>{label}</button>)}</div>}
+    <form onSubmit={submit} id="profile-panel" role={account.onboarded ? 'tabpanel' : undefined} aria-labelledby={account.onboarded ? `tab-${tab}` : undefined}><ErrorMessage message={error} />
+      {(!account.onboarded || tab === 'prescreen') && <>
         <section className="form-section"><h2>About you</h2><div className="form-grid">
           <Field label="Display name"><input value={draft.name} onChange={(event) => update('name', event.target.value)} required maxLength="80" autoComplete="name" /></Field>
           <Field label="Birth date" hint="This demo is for adults aged 18–120."><input type="date" value={draft.birth_date === null ? '' : draft.birth_date} onChange={(event) => update('birth_date', event.target.value)} required autoComplete="bday" /></Field>
@@ -56,19 +56,14 @@ export default function ProfileForm({ profile, account, bootstrap, onSave, onSav
           ['comfortable_audio_recording', 'Are you willing to have your voice recorded?'],
           ['comfortable_video_recording', 'Are you willing to be recorded on video?'],
         ].map(([key, label]) => <BooleanField key={key} label={label} value={draft[key]} onChange={(value) => update(key, value)} />)}</div></section>
-        {bootstrap.prescreen_sections.map((section, index) => index === 0 ? <section className="form-section" key={section.title}><h2>{section.title}</h2><p>Optional. Unanswered questions can be asked when you join a study.</p>{optionalQuestions(section.fields)}</section> : <details className="form-section prescreen-section" key={section.title}><summary>{section.title}<span>{section.fields.length} optional questions</span></summary><p>Fictional answers only. These answers never provide medical clearance; relevant studies still need researcher review.</p>{optionalQuestions(section.fields)}</details>)}
+        {bootstrap.prescreen_sections.slice(0, 1).map((section) => <section className="form-section" key={section.title}><h2>{section.title}</h2><p>Optional. Unanswered questions can be asked when you join a study.</p>{optionalQuestions(section.fields)}</section>)}
         <section className="form-section"><Field label="What would you enjoy taking part in?" hint="Optional. This note doesn’t determine eligibility."><textarea rows="3" value={draft.free_response} onChange={(event) => update('free_response', event.target.value)} maxLength="1000" placeholder="I enjoy strategy games and learning how people make decisions…" /></Field></section>
-      </> : <>
+      </>}
+      {(!account.onboarded || tab === 'preferences') && <>
         <section className="form-section"><h2>Interests</h2><TagPicker topics={bootstrap.topics} selected={draft.interests} onChange={(value) => update('interests', value)} /></section>
-        <section className="form-section"><h2>Preferences</h2><p>These affect browsing and ranking, not scientific eligibility.</p><div className="form-grid">
-          <Field label="Preferred format"><select value={draft.preferred_mode} onChange={(event) => update('preferred_mode', event.target.value)}><option value="any">Online or in person</option><option value="online">Online</option><option value="in_person">In person</option></select></Field>
-          <Field label="Maximum duration"><select value={draft.max_duration} onChange={(event) => update('max_duration', Number(event.target.value))}>{[15,30,45,60,90,120,240,480].map((value) => <option key={value} value={value}>{value === 480 ? 'No preference' : `${value} minutes`}</option>)}</select></Field>
-          <Field label="Preferred location" hint="Used when you enable preference filters."><input value={draft.preferred_location} onChange={(event) => update('preferred_location', event.target.value)} placeholder="e.g. Oxford" maxLength="150" /></Field>
-          <Field label="Match notifications" hint="In-app simulation; no email is sent."><select value={draft.notifications} onChange={(event) => update('notifications', event.target.value)}><option value="off">Off</option><option value="immediate">When a match is available</option><option value="weekly">Weekly summary</option></select></Field>
-        </div><fieldset className="plain-fieldset"><legend>Preferred times <span>(optional)</span></legend><div className="check-row">{['morning','afternoon','evening'].map((time) => <label className="check" key={time}><input type="checkbox" checked={draft.preferred_times.includes(time)} onChange={() => update('preferred_times', draft.preferred_times.includes(time) ? draft.preferred_times.filter((item) => item !== time) : [...draft.preferred_times, time])} /><span className="capitalize">{time}</span></label>)}</div></fieldset><label className="check preference-filter-toggle"><input type="checkbox" checked={draft.preference_filters} onChange={(event) => update('preference_filters', event.target.checked)} /><span>Only show studies that fit my format, duration, location and preferred times</span></label></section>
         <section className="form-section"><h2>Priorities</h2><p>Higher priorities have more influence on your match order.</p><Weights weights={draft.weights} onChange={(value) => update('weights', value)} /></section>
       </>}
-      <div className="form-actions"><div>{onCancel && <Button type="button" secondary onClick={onCancel}>Back to studies</Button>}</div><Button disabled={busy || (tab === 'preferences' && !profile)}>{busy ? 'Saving…' : tab === 'preferences' ? 'Save preferences' : 'Save questionnaire'}</Button></div>{tab === 'preferences' && !profile && <p className="save-hint">Complete and save your prescreen questionnaire first. Your preference choices stay here.</p>}
+      <div className="form-actions"><div>{onCancel && <Button type="button" secondary onClick={onCancel}>Back to studies</Button>}</div><Button disabled={busy}>{busy ? 'Saving…' : !account.onboarded ? 'Find studies' : tab === 'preferences' ? 'Save preferences' : 'Save questionnaire'}</Button></div>
     </form>
   </div>;
 }

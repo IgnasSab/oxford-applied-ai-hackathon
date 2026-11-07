@@ -305,9 +305,9 @@
       "Restrained indigo actions on light neutral surfaces.",
       "Text-labelled states and preference scores; inline score explanations below study content.",
       "Responsive reflow with the logo, demo label and logout retained when navigation closes.",
-      "Direct Preferences and Prescreen questionnaire tabs; independent explicit saves without a Continue step.",
-      "Seven optional general questions and 17 optional medical/safety questions, with clear-to-unknown Yes/No controls and explicit language proficiency.",
-      "Green/grey week/day calendar and a future-bookings list beside it above 1150px or below at narrower widths.",
+      "Signup saves questionnaire, interests and priorities together; existing profiles retain direct tabs and independent saves.",
+      "Seven optional general questions with clear-to-unknown Yes/No controls and explicit language proficiency; medical questionnaire removed.",
+      "Green/grey week/day calendar with enlarged 90px half-hour rows and wrapped titles; future bookings beside it above 1150px or below at narrower widths.",
       "Flat notifications list with dates and safe study links; topic and eligibility filters in discovery."
     ],
     "rules": [
