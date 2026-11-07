@@ -5,33 +5,28 @@ def eligibility(participant, study, answers):
     for rule in study["rules"]:
         value = answers.get(rule["id"]) if rule["field"] == "question" else participant[rule["field"]]
         if value is None:
-            questions.append({"id": rule["id"], "question": rule["question"]})
+            questions.append({key: rule[key] for key in ("id", "question", "answer_type", "choices")})
             continue
-        if rule["field"] == "age":
-            low, high = map(int, rule["value"].split(","))
-            passes = low <= value <= high
-        else:
+        if rule["answer_type"] == "number":
+            bounds = [float(bound) for bound in rule["value"].split(",")]
+            passes = bounds[0] <= value <= bounds[1] if rule["operator"] == "between" else value == bounds[0]
+        elif rule["answer_type"] == "boolean":
             passes = value == (rule["value"] == "true")
+        else:
+            accepted = rule["value"].casefold().split("|") if rule["operator"] == "in" else [rule["value"].casefold()]
+            passes = value.strip().casefold() in accepted
         if not passes:
             return "ineligible", []
     return ("needs_screening" if questions else "eligible"), questions
 
 
 def relevance(participant, study):
-    interest = float(study["topic"] in participant["interests"])
+    overlap = set(participant["interests"]) & set(study["tags"])
+    interest = 1 + 4 * len(overlap) / len(set(participant["interests"])) if participant["interests"] else 1
     hourly = study["compensation"] * 60 / study["duration"]
-    compensation = min(hourly / 25, 1)
-    mode_matches = participant["preferred_mode"] in ("any", study["mode"])
-    duration_matches = study["duration"] <= participant["max_duration"]
-    convenience = (int(mode_matches) + int(duration_matches)) / 2
+    components = {"interest": interest, "compensation": 1 + 4 * min(hourly / 25, 1), "convenience": study["convenience_score"]}
     weights = participant["weights"]
-    score = 100 * (weights["interest"] * interest + weights["compensation"] * compensation + weights["convenience"] * convenience) / sum(weights.values())
-    reasons = []
-    if interest:
-        reasons.append("Matches your interest in " + study["topic"])
-    if mode_matches and participant["preferred_mode"] != "any":
-        reasons.append("Your preferred study format")
-    if duration_matches:
-        reasons.append("Within your preferred duration")
-    reasons.append(f"£{hourly:.0f}/hour equivalent")
-    return round(score), reasons
+    score = sum(weights[key] * value for key, value in components.items()) / sum(weights.values())
+    reasons = ["Matches " + ", ".join(sorted(overlap))] if overlap else ["No selected interest tags overlap"]
+    reasons.extend([f"£{hourly:.2f}/hour equivalent", study["convenience_reason"]])
+    return round(score, 1), components, reasons

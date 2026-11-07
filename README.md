@@ -1,38 +1,48 @@
-# Oxford Applied AI Hackathon
+# Oxford Applied AI Hackathon — StudyMatch
 
-Private workspace for a team of **3–4 people** at Oxford Edge on **7 November 2026**. Our product is **StudyMatch**: researcher-approved eligibility screening, personalized study discovery, and booking. This branch contains a deliberately small synthetic-data demo using a buildless HTML/CSS/JavaScript frontend, FastAPI, and SQLite.
+Private workspace for a **3–4 person team** at Oxford Edge, **7 November 2026**. StudyMatch helps participants discover research, complete only missing screening questions, and book a session. Researchers review AI-extracted study details and eligibility rules before publication. React/Vite + FastAPI + SQLite; Impeccable guided the interface redesign.
 
-## Run the demo
+## Run locally
 
-Requires **Python 3.12**. From this directory on Windows:
+Requires **Python 3.12** and **Node.js 22.12+**. From the repository root on Windows:
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+npm --prefix frontend ci
+npm --prefix frontend run build
 .\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open http://127.0.0.1:8000. No frontend build or separate server is needed. On macOS/Linux, use `python3.12 -m venv .venv` and `.venv/bin/python` for the commands above.
+Open http://127.0.0.1:8000. FastAPI serves the built frontend and API together. On macOS/Linux use `python3.12` and `.venv/bin/python`. During frontend development, `npm --prefix frontend run dev` proxies API requests to port 8000.
 
-The existing `.env` is ignored. To enable live extraction on another laptop, copy `.env.example` to `.env` and set `OPENAI_API_KEY`. The **sample extraction** option works offline only for the supplied example and is labelled as a fixed fixture. Live API failures are shown rather than silently replaced with fake AI results. No participant profiles are sent to the LLM; only the researcher's description is sent.
+Optional live extraction: copy `.env.example` to `.env` and set `OPENAI_API_KEY`. Never commit it. Only researcher-provided study text goes to the model; participant profiles do not. PDF extraction accepts text PDFs up to 5 MB and 20 pages. Scans need pasted text. AI failures are surfaced; the explicitly labelled sample works offline.
 
-### Demo walkthrough
+## Accounts and demo
 
-1. Choose fictional participant Alex; inspect the ranked studies and edit preference weights.
-2. Switch to Researcher. Enter a study using the example criteria, extract live or use the labelled sample, review the rules/questions, add a future slot, and explicitly approve publication.
-3. Switch back to Alex. Find the potential match and answer **No** to previous visual-search participation. The study becomes eligible.
-4. Choose a session from its card or weekly calendar and book. Repeated, overlapping, full, past, and ineligible bookings are rejected by the server.
-5. Open Researcher to see the booking. Opted-in participants see simulated in-app alerts for eligible high-relevance studies; no email or push messages are sent.
+Create an account using email and password and choose Participant or Researcher. Participants complete the short profile and preferences before browsing. Accounts, profiles, reviewed studies, answers, sessions and bookings persist in ignored `backend/studymatch-v2.sqlite3`. The old prototype database remains untouched.
 
-### Team handoff and limits
+Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
-- Frontend owner edits `frontend/`; backend owner edits `backend/`; product/pitch owner maintains demo examples and presentation. Assign individual names as a team.
-- Read [the API contract](docs/api-contract.md) before changing either side. SQLite persists profiles, approved studies, answers, and bookings in ignored `backend/studymatch.sqlite3`.
-- Run focused checks with `.\.venv\Scripts\python.exe -m pytest -q` and `node --check frontend/app.js`.
-- Three fictional profiles and six studies keep the demo inspectable. Create more through the UI if needed.
-- **Local synthetic-data prototype only:** the role switch is not authentication. Do not expose it publicly or enter real participant/medical data. No real registration, email, PDF ingestion, recurring sessions, cancellation, payments, or calendar integration.
-- AI extraction is a draft. Researcher approval is required; ambiguous/safety-sensitive studies remain in manual review with automatic booking disabled. This is not clinical clearance, a validated screening system, or a production replacement for Sona.
-- Sites plugin guidance informs the local frontend workflow. Sites hosting requires a JavaScript Worker and cannot directly run this FastAPI backend; no hosted deployment is configured.
+- Participant: `participant@studymatch.demo`
+- Researcher: `researcher@studymatch.demo`
+
+Demo flow:
+
+1. Sign up as a participant; complete the seven-field profile, optional free response, and interests.
+2. Browse ranked studies. Move the three sliders to change priority; the 1–5 preference score is distinct from eligibility.
+3. Open a study needing screening. Answer only its remaining questions, then select a future session. Check the schedule.
+4. Sign in as researcher. Create a study manually, paste text, or upload a PDF. Review editable details, convenience rating, rules and source evidence; add a slot and approve publication.
+5. The new study appears to matching participants; confirmed bookings appear in its researcher's dashboard.
+
+## Scope and team handoff
+
+- Frontend owner: `frontend/`. Backend owner: `backend/`. Product/pitch owner: demo story and rehearsal. Fourth teammate: evaluation/integration. Read [API contract](docs/api-contract.md) before changes; avoid shared-file edits in parallel.
+- Run `.\.venv\Scripts\python.exe -m pytest -q` and `npm --prefix frontend run build` before handoff.
+- Earnings uses hourly compensation, interest uses shared tags, convenience is a fixed researcher-approved 1–5 study rating. Weighted average is calculated without participant-specific model calls. Preferences filter/rank; eligibility uses explicit rules.
+- Local hackathon demo with synthetic data. Real password/session authentication, but no email verification, password recovery, production deployment, payments, external calendar sync, OCR, or multi-session booking.
+- Notifications are simulated in-app. Medical, safety-sensitive, conditional or unresolved criteria require investigator review and block automatic booking. A screening match is not clinical clearance.
+- Design context: [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md). The broader [project brief](STUDYMATCH_PROJECT_BRIEF.md) includes future scope beyond this demo.
 
 Event: https://luma.com/lpwg9cq4  
 Team and submission workspace: https://app.hack-nation.ai/e/hack-nation-oxford-hackathon

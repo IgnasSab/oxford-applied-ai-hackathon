@@ -1,67 +1,117 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Literal, Optional
+import math
+import re
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StrictBool, model_validator
-
-
-class Weights(BaseModel):
-    interest: float = Field(default=5, ge=0, le=10)
-    compensation: float = Field(default=3, ge=0, le=10)
-    convenience: float = Field(default=2, ge=0, le=10)
-
-    @model_validator(mode="after")
-    def positive_total(self):
-        if sum(self.model_dump().values()) == 0:
-            raise ValueError("Choose at least one preference priority.")
-        return self
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StringConstraints, field_validator, model_validator
 
 
-class ParticipantInput(BaseModel):
+class InputModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class LoginInput(InputModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: Annotated[str, StringConstraints(strip_whitespace=False)] = Field(min_length=8, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value):
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("Enter a valid email address.")
+        return value.lower()
+
+
+class SignupInput(LoginInput):
+    name: str = Field(min_length=1, max_length=80)
+    role: Literal["participant", "researcher"]
+
+
+class Weights(InputModel):
+    interest: float = Field(default=3, ge=1, le=5, allow_inf_nan=False)
+    compensation: float = Field(default=3, ge=1, le=5, allow_inf_nan=False)
+    convenience: float = Field(default=3, ge=1, le=5, allow_inf_nan=False)
+
+
+class ParticipantInput(InputModel):
     name: str = Field(min_length=1, max_length=80)
     age: int = Field(ge=18, le=120)
-    english: Optional[StrictBool] = None
-    vision: Optional[StrictBool] = None
-    interests: List[str] = Field(max_length=5)
+    handedness: Literal["left", "right", "ambidextrous"]
+    first_language: str = Field(min_length=1, max_length=80)
+    english: StrictBool
+    vision: StrictBool
+    psychology_background: StrictBool
+    university: str = Field(max_length=150)
+    free_response: str = Field(default="", max_length=1000)
+    interests: list[str] = Field(max_length=16)
     preferred_mode: Literal["online", "in_person", "any"] = "any"
-    max_duration: int = Field(default=60, ge=5, le=240)
+    preferred_location: str = Field(default="", max_length=150)
+    max_duration: int = Field(default=480, ge=5, le=480)
+    preferred_times: list[Literal["morning", "afternoon", "evening"]] = Field(default_factory=list)
+    notifications: Literal["off", "immediate", "weekly"] = "off"
     weights: Weights = Field(default_factory=Weights)
-    notifications: bool = False
 
 
-class Rule(BaseModel):
-    id: str = Field(min_length=1, max_length=80)
-    field: Literal["age", "english", "vision", "question"]
-    operator: Literal["between", "equals"]
-    value: str
+class Rule(InputModel):
+    id: str = Field(min_length=1, max_length=80, pattern=r"^[a-zA-Z0-9_-]+$")
+    field: Literal["age", "handedness", "first_language", "english", "vision", "psychology_background", "university", "question"]
+    answer_type: Literal["boolean", "number", "choice"]
+    operator: Literal["between", "equals", "in"]
+    value: str = Field(min_length=1, max_length=1000)
+    choices: list[str] = Field(max_length=30)
     question: str = Field(min_length=1, max_length=500)
     source: str = Field(min_length=1, max_length=2000)
 
     @model_validator(mode="after")
     def valid_operation(self):
-        if self.field == "age":
-            bounds = self.value.split(",")
-            if self.operator != "between" or len(bounds) != 2:
-                raise ValueError("Age rules require between with value such as 18,35.")
-            low, high = map(int, bounds)
-            if not 0 <= low <= high <= 120:
-                raise ValueError("Invalid age range.")
-        elif self.operator != "equals" or self.value not in ("true", "false"):
-            raise ValueError("Boolean rules require equals with true or false.")
+        canonical_types = {"age": "number", "english": "boolean", "vision": "boolean", "psychology_background": "boolean", "handedness": "choice", "first_language": "choice", "university": "choice"}
+        if self.field in canonical_types and self.answer_type != canonical_types[self.field]:
+            raise ValueError("Answer type must match the selected profile field.")
+        if self.answer_type == "boolean":
+            if self.operator != "equals" or self.value not in ("true", "false"):
+                raise ValueError("Boolean rules require equals with true or false.")
+        elif self.answer_type == "number":
+            parts = self.value.split(",")
+            if self.operator not in ("equals", "between") or len(parts) != (2 if self.operator == "between" else 1):
+                raise ValueError("Number rules require equals or between, for example 18,35.")
+            bounds = [float(value) for value in parts]
+            if not all(math.isfinite(value) for value in bounds) or (len(bounds) == 2 and bounds[0] > bounds[1]):
+                raise ValueError("Invalid number range.")
+        else:
+            if self.operator not in ("equals", "in"):
+                raise ValueError("Choice rules require equals or in.")
+            if self.field == "question" and (len(self.choices) < 2 or not set(self.value.casefold().split("|")).issubset({choice.casefold() for choice in self.choices})):
+                raise ValueError("Choice questions need at least two options including every accepted answer.")
         return self
 
 
-class Extraction(BaseModel):
-    rules: List[Rule] = Field(max_length=20)
+class StudyFields(InputModel):
+    title: str = Field(min_length=1, max_length=160)
+    summary: str = Field(min_length=1, max_length=400)
+    description: str = Field(min_length=10, max_length=20000)
+    requirements: str = Field(max_length=20000)
+    mode: Literal["online", "in_person"]
+    location: str = Field(min_length=1, max_length=200)
+    duration: int = Field(ge=5, le=480)
+    compensation: float = Field(ge=0, le=10000, allow_inf_nan=False)
+    tags: list[str] = Field(max_length=16)
+    convenience_score: float = Field(ge=1, le=5, allow_inf_nan=False)
+    convenience_reason: str = Field(min_length=1, max_length=1000)
+
+
+class Extraction(InputModel):
+    fields: StudyFields
+    rules: list[Rule] = Field(max_length=30)
     manual_review: bool
-    review_notes: List[str]
+    review_notes: list[str] = Field(max_length=30)
 
 
-class ExtractInput(BaseModel):
-    description: str = Field(min_length=10, max_length=8000)
+class ExtractInput(InputModel):
+    description: str = Field(min_length=10, max_length=50000)
     demo: bool = False
 
 
-class SlotInput(BaseModel):
+class SlotInput(InputModel):
     starts_at: datetime
     capacity: int = Field(ge=1, le=100)
 
@@ -74,32 +124,29 @@ class SlotInput(BaseModel):
         return self
 
 
-class StudyInput(BaseModel):
-    draft_id: int
-    title: str = Field(min_length=1, max_length=120)
-    description: str = Field(min_length=10, max_length=8000)
-    topic: str
-    mode: Literal["online", "in_person"]
-    location: str = Field(min_length=1, max_length=150)
-    duration: int = Field(ge=5, le=240)
-    compensation: float = Field(ge=0, le=1000)
-    rules: List[Rule] = Field(max_length=20)
+class StudyInput(StudyFields):
+    draft_id: int | None = None
+    rules: list[Rule] = Field(max_length=30)
     manual_review: bool
+    review_notes: list[str] = Field(default_factory=list, max_length=30)
     approved: Literal[True]
-    slots: List[SlotInput] = Field(min_length=1, max_length=30)
+    slots: list[SlotInput] = Field(max_length=30)
 
     @model_validator(mode="after")
-    def unique_rules(self):
+    def valid_study(self):
         if len({rule.id for rule in self.rules}) != len(self.rules):
             raise ValueError("Screening rule ids must be unique.")
+        if not self.manual_review and not self.slots:
+            raise ValueError("Add at least one future session.")
+        if len({slot.starts_at for slot in self.slots}) != len(self.slots):
+            raise ValueError("Session times must be distinct.")
         return self
 
 
-class AnswersInput(BaseModel):
+class AnswersInput(InputModel):
     study_id: int
-    answers: Dict[str, StrictBool]
+    answers: dict[str, StrictBool | StrictInt | StrictFloat | str] = Field(min_length=1, max_length=30)
 
 
-class BookingInput(BaseModel):
-    participant_id: int
+class BookingInput(InputModel):
     slot_id: int

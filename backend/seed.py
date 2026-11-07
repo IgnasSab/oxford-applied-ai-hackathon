@@ -1,38 +1,38 @@
 import json
 from datetime import datetime, timedelta, timezone
 
-TOPICS = ["cognition", "language", "decision-making", "social psychology", "neuroscience"]
-SAMPLE_DESCRIPTION = "Recruit participants aged 18–35 who are fluent in English, have normal or corrected-to-normal vision, and have not participated in our previous visual search experiment."
+from .auth import hash_password
+
+TOPICS = ["Games & Challenges", "Puzzles & Memory Games", "Virtual Reality", "Films, TV & Music", "Food & Tasting", "Social Games & Interactions", "Brain Scans & Neurotech", "Movement & Hands-on", "Visual & Attention Challenges", "Decision-Making & Rewards", "Emotions & Relationships", "Sleep & Dreams", "Language & Words", "Technology & Digital Life", "Quizzes & Personality", "Creativity & Imagination"]
+SAMPLE_DESCRIPTION = "Attention in a distracted world. Complete a visual attention task on a laboratory computer at Oxford Experimental Psychology. One 45-minute session pays £12. Recruit participants aged 18–35 who are fluent in English, have normal or corrected-to-normal vision, and have not participated in our previous visual search experiment."
 SAMPLE_RULES = [
-    {"id": "age", "field": "age", "operator": "between", "value": "18,35", "question": "How old are you?", "source": "aged 18–35"},
-    {"id": "english", "field": "english", "operator": "equals", "value": "true", "question": "Are you fluent in English?", "source": "fluent in English"},
-    {"id": "vision", "field": "vision", "operator": "equals", "value": "true", "question": "Do you have normal or corrected-to-normal vision?", "source": "normal or corrected-to-normal vision"},
-    {"id": "previous_visual_search", "field": "question", "operator": "equals", "value": "false", "question": "Have you participated in our previous visual search experiment?", "source": "have not participated in our previous visual search experiment"},
+    {"id": "age", "field": "age", "answer_type": "number", "operator": "between", "value": "18,35", "choices": [], "question": "How old are you?", "source": "aged 18–35"},
+    {"id": "english", "field": "english", "answer_type": "boolean", "operator": "equals", "value": "true", "choices": [], "question": "Are you fluent in English?", "source": "fluent in English"},
+    {"id": "vision", "field": "vision", "answer_type": "boolean", "operator": "equals", "value": "true", "choices": [], "question": "Do you have normal or corrected-to-normal vision?", "source": "normal or corrected-to-normal vision"},
+    {"id": "previous_visual_search", "field": "question", "answer_type": "boolean", "operator": "equals", "value": "false", "choices": [], "question": "Have you participated in our previous visual search experiment?", "source": "have not participated in our previous visual search experiment"},
 ]
+SAMPLE_FIELDS = dict(title="Attention in a distracted world", summary="Explore how visual distractions affect attention in a short computer task.", description="Complete a visual attention task on a laboratory computer. You will respond to shapes and patterns on screen during one 45-minute session.", requirements="Recruit participants aged 18–35 who are fluent in English, have normal or corrected-to-normal vision, and have not participated in our previous visual search experiment.", mode="in_person", location="Oxford · Experimental Psychology", duration=45, compensation=12, tags=["Visual & Attention Challenges", "Puzzles & Memory Games"], convenience_score=3, convenience_reason="One 45-minute visit; a lab computer is provided, but travel is required.")
 
 
 def seed(connection):
-    if connection.execute("SELECT COUNT(*) FROM participants").fetchone()[0]:
+    if connection.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
         return
-    for name, age, english, vision, interests, mode in [
-        ("Alex Morgan", 24, True, True, ["cognition", "decision-making"], "any"),
-        ("Sam Taylor", 42, True, True, ["language", "social psychology"], "online"),
-        ("Jamie Chen", 21, None, True, ["cognition", "language"], "in_person"),
-    ]:
-        profile = dict(name=name, age=age, english=english, vision=vision, interests=interests, preferred_mode=mode, max_duration=60, weights=dict(interest=5, compensation=3, convenience=2), notifications=True)
-        connection.execute("INSERT INTO participants(data) VALUES (?)", (json.dumps(profile),))
+    participant_id = connection.execute("INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)", ("Alex Morgan", "participant@studymatch.demo", hash_password("StudyMatch2026!"), "participant")).lastrowid
+    researcher_id = connection.execute("INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)", ("Dr Robin Taylor", "researcher@studymatch.demo", hash_password("StudyMatch2026!"), "researcher")).lastrowid
+    profile = dict(name="Alex Morgan", age=24, handedness="right", first_language="English", english=True, vision=True, psychology_background=False, university="University of Oxford", free_response="I enjoy puzzles and finding out how people make decisions.", interests=["Puzzles & Memory Games", "Decision-Making & Rewards", "Visual & Attention Challenges"], preferred_mode="any", preferred_location="", max_duration=480, preferred_times=[], weights=dict(interest=3, compensation=3, convenience=3), notifications="immediate")
+    connection.execute("INSERT INTO participants(user_id,data) VALUES (?,?)", (participant_id, json.dumps(profile)))
     tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     examples = [
-        ("Attention in a distracted world", "cognition", "in_person", 45, 12, SAMPLE_RULES, False, "Explore how visual distractions affect attention in a short computer task."),
-        ("The choices we make", "decision-making", "online", 20, 8, SAMPLE_RULES[:1], False, "Make everyday choices in an interactive decision-making task."),
-        ("Words in context", "language", "online", 30, 10, SAMPLE_RULES[1:2], False, "Read short sentences and help us understand how context shapes meaning."),
-        ("Social connections", "social psychology", "in_person", 60, 18, [], False, "Explore how people interpret social situations through fictional scenarios."),
-        ("Memory across adulthood", "cognition", "online", 40, 15, [dict(SAMPLE_RULES[0], value="40,65", source="aged 40–65")], False, "A memory task for adults aged 40–65."),
-        ("Brain imaging orientation", "neuroscience", "in_person", 90, 25, [], True, "Requires investigator-led safety review. No automatic booking is available."),
+        dict(SAMPLE_FIELDS, rules=SAMPLE_RULES, manual_review=False, review_notes=[]),
+        dict(title="The choices we make", summary="Trade off risks and rewards in an interactive decision-making game.", description="Make everyday choices in a browser-based decision-making game. Complete one 20-minute session from home using your laptop.", requirements="Adults aged 18–65.", mode="online", location="Online", duration=20, compensation=8, tags=["Decision-Making & Rewards", "Games & Challenges"], convenience_score=5, convenience_reason="A short online session on your own laptop; no travel or setup beyond a browser.", rules=[dict(SAMPLE_RULES[0], value="18,65", source="aged 18–65")], manual_review=False, review_notes=[]),
+        dict(title="Words in context", summary="Read short stories and explore how context changes meaning.", description="Read short sentences and stories, then answer questions about their meaning. This online language experiment takes 30 minutes.", requirements="Fluent in English.", mode="online", location="Online", duration=30, compensation=10, tags=["Language & Words", "Creativity & Imagination"], convenience_score=5, convenience_reason="A 30-minute browser task with no special equipment or travel.", rules=SAMPLE_RULES[1:2], manual_review=False, review_notes=[]),
+        dict(title="Social connections", summary="Play a cooperative game and explore how people work together.", description="Join a cooperative computer game at our Oxford lab. You will make decisions alongside another participant during one hour-long session.", requirements="Adults aged 18–65.", mode="in_person", location="Oxford · Experimental Psychology", duration=60, compensation=18, tags=["Social Games & Interactions", "Emotions & Relationships", "Games & Challenges"], convenience_score=3, convenience_reason="One hour at the lab; all equipment is supplied but travel and a shared appointment are required.", rules=[dict(SAMPLE_RULES[0], value="18,65", source="aged 18–65")], manual_review=False, review_notes=[]),
+        dict(title="Memory across adulthood", summary="Try a collection of memory puzzles from home.", description="Complete a series of word and picture memory challenges in your browser. The study takes around 40 minutes with a short break.", requirements="Adults aged 40–65.", mode="online", location="Online", duration=40, compensation=15, tags=["Puzzles & Memory Games", "Visual & Attention Challenges"], convenience_score=4, convenience_reason="Online with a short break; allow 40 uninterrupted minutes on a laptop.", rules=[dict(SAMPLE_RULES[0], value="40,65", source="aged 40–65")], manual_review=False, review_notes=[]),
+        dict(title="Brain imaging orientation", summary="Learn about an upcoming brain imaging research session.", description="This synthetic example illustrates a study needing investigator-led safety review. The research team must confirm suitability before arranging attendance.", requirements="MRI safety screening by investigator required.", mode="in_person", location="Oxford · Imaging Centre", duration=90, compensation=25, tags=["Brain Scans & Neurotech"], convenience_score=1, convenience_reason="A 90-minute specialist appointment with travel, preparation and investigator coordination.", rules=[], manual_review=True, review_notes=["Safety-sensitive study. No automatic booking."]),
     ]
-    for index, (title, topic, mode, duration, compensation, rules, manual, description) in enumerate(examples):
-        study = dict(title=title, topic=topic, mode=mode, duration=duration, compensation=compensation, rules=rules, manual_review=manual, description=description, location="Online" if mode == "online" else "Oxford • Experimental Psychology")
-        study_id = connection.execute("INSERT INTO studies(data) VALUES (?)", (json.dumps(study),)).lastrowid
-        for offset in (0, 2):
-            starts = tomorrow + timedelta(days=(index + offset) % 6, hours=index % 3)
-            connection.execute("INSERT INTO slots(study_id, starts_at, capacity) VALUES (?, ?, ?)", (study_id, starts.isoformat(), 3))
+    for index, study in enumerate(examples):
+        study_id = connection.execute("INSERT INTO studies(researcher_id,data) VALUES (?,?)", (researcher_id, json.dumps(study))).lastrowid
+        if not study["manual_review"]:
+            for offset in (0, 2):
+                starts = tomorrow + timedelta(days=(index + offset) % 6, hours=index % 3)
+                connection.execute("INSERT INTO slots(study_id,starts_at,capacity) VALUES (?,?,?)", (study_id, starts.isoformat(), 3))
