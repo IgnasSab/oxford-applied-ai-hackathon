@@ -46,9 +46,11 @@ GET `/api/researcher/studies` returns owned `{studies,bookings,review_requests}`
 
 ## Review and notifications
 
-POST `/api/review-requests` participant `{study_id,note}` returns `{id,status:"pending"}`. Only manual-review studies, one request per participant/study. Never request sensitive details in notes. Researcher queue entries: `{id,study_id,title,participant_name,note,status,created_at,decision_note}`.
+POST `/api/review-requests` participant `{study_id,note}` returns `{id,status:"pending"}`. Only manual-review studies, one request per participant/study. Never request sensitive details in notes. Researcher queue entries: `{id,study_id,title,participant_name,participant_info,requirements,review_notes,screening_checks,note,status,created_at,decision_note}`.
 
-POST `/api/review-requests/{id}/decision` researcher `{decision:"approved"|"declined",note,eligibility_checked:boolean}` returns `{id,status}`. Owner and pending-only; approval requires attestation that necessary external checks are complete. No AI clinical clearance.
+Only the study owner receives this review context. `participant_info` contains current `{age,gender,university,first_language,email}`; unavailable values remain null. Each screening check contains `{id,question,answer_type,choices,source,expected_answer,answer,answer_source,status}`. Answer source is profile/study/null; status is met/not_met/missing. Recompute from the current profile and saved answers for this study using the same rule evaluation as matching. Do not include the full profile, birth date, unrelated answers or medical history. Full study requirements and review notes remain visible even when there are no supported rules. Missing answers and unresolved manual requirements are never presented as passed.
+
+POST `/api/review-requests/{id}/decision` researcher `{decision:"approved"|"declined",note,eligibility_checked:boolean}` returns `{id,status}`. Owner and pending-only; approval requires attestation that answers were reviewed and remaining eligibility/safety checks completed. Recheck current answers before approval and return 409 if any ordinary rule fails. Approval clears only manual review; missing ordinary screening still blocks booking. No AI clinical clearance.
 
 GET `/api/notifications` returns `{notifications:[{id,study_id,kind,title,message,created_at}]}`, newest first and participant-scoped. `study_id` is null for historical events whose study is no longer visible to the participant. Kinds: eligible, potential, booking, review. Match alerts respect opt-in, score threshold and deduplication; stale/ineligible suggestions are suppressed. Booking/review events are persisted. `/api/matches.notifications` returns the same safe list for compatibility. No email or push delivery.
 

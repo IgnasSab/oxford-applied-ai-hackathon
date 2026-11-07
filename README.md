@@ -48,7 +48,7 @@ Demo flow:
 2. Open Profile & preferences to edit interests and priority sliders directly, independently of the prescreen. Browse studies by format, topic and eligibility state.
 3. Open a potential match and answer only remaining questions. The calendar shows booked sessions in green and available sessions in grey, with upcoming bookings listed beside it.
 4. Sign in as researcher. Enter study facts or use Simple PDF or text import. Choose topics and, for an in-person study, location. AI prepares a cleaned description and screening. Review, add slots and publish.
-5. View matching alerts, booking confirmations and review decisions on Notifications. Studies needing human review offer a request button and an owned researcher review queue.
+5. View matching alerts, booking confirmations and review decisions on Notifications. Studies needing human review offer a request button and an owned researcher review queue. Each request shows participant contact/basic details, full requirements, reasons for review and relevant current answers alongside expected answers. Missing and failing answers are explicit; known failures block approval. Only the study owner receives this context, without unrelated profile answers or medical history. Approval clears manual review only; remaining screening still applies before booking.
 
 The combined version ports the broader questionnaire, language proficiency, topic discovery and stored-notification ideas from the supplied `friends/app.py`, `engine.py`, `ai.py` and `storage.py`. It retains this app's authenticated React/FastAPI workflow and existing database; the friend's separate Streamlit account selector and datastore are not used.
 

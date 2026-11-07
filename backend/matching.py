@@ -17,11 +17,12 @@ def university_name(value):
     }.get(name, name)
 
 
-def eligibility(participant, study, answers, review_status=None):
-    questions = []
+def screening_checks(participant, study, answers):
+    checks = []
     for rule in study["rules"]:
+        answer_source = "profile"
         if rule["field"] == "age":
-            value = age_on_date(date.fromisoformat(participant["birth_date"]), date.today())
+            value = age_on_date(date.fromisoformat(participant["birth_date"]), date.today()) if participant["birth_date"] else None
         elif rule["field"] == "language_levels":
             target = json.loads(rule["value"])
             language = target["language"].casefold()
@@ -33,16 +34,29 @@ def eligibility(participant, study, answers, review_status=None):
                     value = "Fluent"
                 if value is None:
                     value = answers.get(rule["id"])
+                    answer_source = "study"
         else:
             value = participant.get(rule["field"]) if rule["field"] != "question" else None
             if rule["field"] == "gender" and value in ("Self-describe", "Prefer not to say"):
                 value = None
             if value is None:
                 value = answers.get(rule["id"])
+                answer_source = "study"
             if rule["field"] == "gender" and value in ("Self-describe", "Prefer not to say"):
                 value = None
+        if rule["field"] == "language_levels":
+            expected_answer = f"{target['level']} or higher in {target['language']}"
+        elif rule["answer_type"] == "boolean":
+            expected_answer = "Yes" if rule["value"] == "true" else "No"
+        elif rule["operator"] == "between":
+            expected_answer = "–".join(rule["value"].split(","))
+        else:
+            expected_answer = " or ".join(rule["value"].split("|"))
+        check = {key: rule[key] for key in ("id", "question", "answer_type", "choices", "source")}
+        check.update(answer=value, answer_source=answer_source if value is not None else None, expected_answer=expected_answer)
+        checks.append(check)
         if value is None:
-            questions.append({key: rule[key] for key in ("id", "question", "answer_type", "choices")})
+            check["status"] = "missing"
             continue
         if rule["field"] == "language_levels":
             passes = value in LANGUAGE_LEVELS and LANGUAGE_LEVELS.index(value) >= LANGUAGE_LEVELS.index(target["level"])
@@ -59,10 +73,17 @@ def eligibility(participant, study, answers, review_status=None):
                 passes = bool({language.strip().casefold() for language in value} & set(accepted))
             else:
                 passes = value.strip().casefold() in accepted
-        if not passes:
-            return "ineligible", []
+        check["status"] = "met" if passes else "not_met"
+    return checks
+
+
+def eligibility(participant, study, answers, review_status=None):
+    checks = screening_checks(participant, study, answers)
+    if any(check["status"] == "not_met" for check in checks):
+        return "ineligible", []
     if study["manual_review"] and review_status != "approved":
         return "manual_review", []
+    questions = [{key: check[key] for key in ("id", "question", "answer_type", "choices")} for check in checks if check["status"] == "missing"]
     return ("needs_screening" if questions else "eligible"), questions
 
 

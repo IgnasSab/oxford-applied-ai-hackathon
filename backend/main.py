@@ -6,7 +6,7 @@ import re
 import secrets
 import sqlite3
 from contextlib import asynccontextmanager, contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,7 +20,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from .auth import hash_password, token_hash, verify_password
-from .matching import eligibility, relevance
+from .matching import age_on_date, eligibility, relevance, screening_checks
 from .models import AnswersInput, BookingInput, Extraction, ExtractInput, LoginInput, ParticipantInput, PreferencesInput, ReviewDecisionInput, ReviewRequestInput, SignupInput, SlotsInput, StudyInput, StudyPrepareInput
 from .seed import LANGUAGES, LANGUAGE_LEVELS, LOCATIONS, PRESCREEN_SECTIONS, SAMPLE_DESCRIPTION, SAMPLE_FIELDS, SAMPLE_RULES, TOPICS, UNIVERSITIES, seed
 
@@ -385,8 +385,12 @@ def decide_review(request_id: int, submission: ReviewDecisionInput, user=Depends
             raise HTTPException(404, "Review request not found.")
         if review["status"] != "pending":
             raise HTTPException(409, "This review request already has a decision.")
-        connection.execute("UPDATE review_requests SET status=?,decision_note=?,decided_at=? WHERE id=?", (submission.decision, submission.note, datetime.now(timezone.utc).isoformat(), request_id))
         study = json.loads(review["data"])
+        if submission.decision == "approved":
+            participant = profile_record(connection, review["participant_id"])
+            if eligibility(participant, study, saved_answers(connection, review["participant_id"], review["study_id"]), "approved")[0] == "ineligible":
+                raise HTTPException(409, "The participant's current answers do not meet this study's requirements. Refresh the review before deciding.")
+        connection.execute("UPDATE review_requests SET status=?,decision_note=?,decided_at=? WHERE id=?", (submission.decision, submission.note, datetime.now(timezone.utc).isoformat(), request_id))
         message = "Researcher review approved. Complete any remaining screening before booking." if submission.decision == "approved" else "The researcher declined your review request."
         save_notification(connection, review["participant_id"], review["study_id"], "review", study["title"], message, f"review-{request_id}")
         return dict(id=request_id, status=submission.decision)
@@ -417,10 +421,20 @@ def researcher_studies(user=Depends(researcher_user)):
             FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN studies st ON st.id=s.study_id
             JOIN users u ON u.id=b.participant_id WHERE st.researcher_id=? ORDER BY s.starts_at""", (user["id"],))
         bookings = [dict(id=row["id"], study_id=row["study_id"], starts_at=row["starts_at"], title=json.loads(row["study"])["title"], participant_name=row["participant_name"]) for row in rows]
-        rows = connection.execute("""SELECT r.id,r.study_id,r.note,r.status,r.created_at,r.decision_note,u.name AS participant_name,st.data AS study
+        rows = connection.execute("""SELECT r.id,r.participant_id,r.study_id,r.note,r.status,r.created_at,r.decision_note,u.name AS participant_name,u.email,st.data AS study,p.data AS profile
             FROM review_requests r JOIN studies st ON st.id=r.study_id JOIN users u ON u.id=r.participant_id
+            JOIN participants p ON p.user_id=r.participant_id
             WHERE st.researcher_id=? ORDER BY r.created_at DESC""", (user["id"],))
-        review_requests = [dict(id=row["id"], study_id=row["study_id"], title=json.loads(row["study"])["title"], participant_name=row["participant_name"], note=row["note"], status=row["status"], created_at=row["created_at"], decision_note=row["decision_note"]) for row in rows]
+        review_requests = []
+        for row in rows:
+            study = json.loads(row["study"])
+            participant = normalized_profile(json.loads(row["profile"]))
+            participant_info = {key: participant[key] for key in ("gender", "university", "first_language")}
+            participant_info.update(email=row["email"], age=age_on_date(date.fromisoformat(participant["birth_date"]), date.today()) if participant["birth_date"] else None)
+            checks = screening_checks(participant, study, saved_answers(connection, row["participant_id"], row["study_id"]))
+            review_requests.append(dict(id=row["id"], study_id=row["study_id"], title=study["title"], participant_name=row["participant_name"], participant_info=participant_info,
+                requirements=study["requirements"], review_notes=study["review_notes"], screening_checks=checks,
+                note=row["note"], status=row["status"], created_at=row["created_at"], decision_note=row["decision_note"]))
         return dict(studies=studies, bookings=bookings, review_requests=review_requests)
 
 

@@ -618,6 +618,81 @@ def test_declined_review_stays_blocked_and_ordinary_studies_cannot_request_revie
     assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
 
 
+def test_review_shows_relevant_current_answers_and_missing_information_only_to_owner(client, researcher, participant):
+    profile = profile_input(gender="Man", medication_use=True, free_response="Private unrelated profile note.")
+    assert participant.put("/api/profile", json=profile).status_code == 200
+    requirements = "Adults aged 18-35 without a psychology background. Intermediate French required. No prior participation. Researcher confirmation required."
+    reason = "Confirm the additional requirements with the participant."
+    study = publish(researcher, requirements=requirements, manual_review=True, review_notes=[reason], rules=[
+        rule("age", "number", "between", "18,35", field="age", question="How old are you?", source="Adults aged 18-35"),
+        rule("psychology", field="psychology_background", question="Do you have a psychology background?", source="without a psychology background"),
+        rule("french", "choice", "language_at_least", json.dumps({"language": "French", "level": "Intermediate"}), field="language_levels",
+             choices=["None", "Beginner", "Intermediate", "Fluent"], question="What is your French proficiency?", source="Intermediate French required"),
+        rule("previous"),
+    ])
+    response = participant.post("/api/review-requests", json={"study_id": study["id"], "note": "Please review my request."})
+    assert response.status_code == 201, response.text
+    request_id = response.json()["id"]
+    request = next(item for item in researcher.get("/api/researcher/studies").json()["review_requests"] if item["id"] == request_id)
+    assert request["participant_info"] == dict(age=24, gender="Man", university="Oxford", first_language="English", email="participant@studymatch.demo")
+    assert request["requirements"] == requirements
+    assert reason in request["review_notes"]
+    checks = {check["id"]: check for check in request["screening_checks"]}
+    assert checks["age"]["answer"] == 24 and checks["age"]["expected_answer"] == "18–35"
+    assert checks["age"]["status"] == "met" and checks["age"]["answer_source"] == "profile"
+    assert checks["psychology"]["answer"] is False and checks["psychology"]["expected_answer"] == "No"
+    assert checks["psychology"]["status"] == "met"
+    assert checks["french"]["answer"] == "Fluent" and checks["french"]["expected_answer"] == "Intermediate or higher in French"
+    assert checks["previous"]["answer"] is None and checks["previous"]["answer_source"] is None
+    assert checks["previous"]["status"] == "missing"
+    for private in ("birth_date", "medication_use", "free_response", "Private unrelated profile note.", "weights", "password_hash"):
+        assert private not in json.dumps(request)
+    assert participant.get("/api/researcher/studies").status_code == 403
+    signup(client, "review-context-outsider@example.test", "researcher")
+    assert client.get("/api/researcher/studies").json()["review_requests"] == []
+    assert researcher.post(f"/api/review-requests/{request_id}/decision", json={"decision": "approved", "note": "Manual checks completed.", "eligibility_checked": True}).status_code == 200
+    assert participant.post("/api/answers", json={"study_id": study["id"], "answers": {"previous": False}}).status_code == 200
+    updated = next(item for item in researcher.get("/api/researcher/studies").json()["review_requests"] if item["id"] == request_id)
+    previous = next(check for check in updated["screening_checks"] if check["id"] == "previous")
+    assert previous["answer"] is False and previous["answer_source"] == "study" and previous["status"] == "met"
+
+
+def test_review_rechecks_changed_profile_before_approval(researcher, participant):
+    study = publish(researcher, manual_review=True, rules=[
+        rule("age", "number", "between", "18,35", field="age", source="Participants aged 18-35."),
+        rule("previous"),
+    ])
+    response = participant.post("/api/review-requests", json={"study_id": study["id"], "note": "Please review."})
+    assert response.status_code == 201, response.text
+    request_id = response.json()["id"]
+    assert participant.put("/api/profile", json=profile_input(birth_date=birth_date_for_age(50))).status_code == 200
+    request = next(item for item in researcher.get("/api/researcher/studies").json()["review_requests"] if item["id"] == request_id)
+    assert request["participant_info"]["age"] == 50
+    assert [check["status"] for check in request["screening_checks"]] == ["not_met", "missing"]
+    path = f"/api/review-requests/{request_id}/decision"
+    response = researcher.post(path, json={"decision": "approved", "note": "Reviewed.", "eligibility_checked": True})
+    assert response.status_code == 409
+    with main.database() as connection:
+        assert connection.execute("SELECT status FROM review_requests WHERE id=?", (request_id,)).fetchone()["status"] == "pending"
+        assert connection.execute("SELECT count(*) FROM notifications WHERE study_id=? AND kind='review'", (study["id"],)).fetchone()[0] == 0
+    assert researcher.post(path, json={"decision": "declined", "note": "Current requirements are not met.", "eligibility_checked": False}).status_code == 200
+
+
+def test_review_without_structured_rules_keeps_full_requirements_and_unknown_profile(researcher, participant):
+    study = publish(researcher, manual_review=True, requirements="Researcher must confirm the conditional clothing requirements.", review_notes=["Clothing requirements need individual confirmation."])
+    request_id = participant.post("/api/review-requests", json={"study_id": study["id"], "note": "Please review."}).json()["id"]
+    participant_id = participant.get("/api/auth/me").json()["id"]
+    legacy_profile = profile_input()
+    legacy_profile.pop("birth_date")
+    with main.database() as connection:
+        connection.execute("UPDATE participants SET data=? WHERE user_id=?", (json.dumps(legacy_profile), participant_id))
+    request = next(item for item in researcher.get("/api/researcher/studies").json()["review_requests"] if item["id"] == request_id)
+    assert request["requirements"] == study["requirements"]
+    assert "Clothing requirements need individual confirmation." in request["review_notes"]
+    assert request["screening_checks"] == []
+    assert request["participant_info"]["age"] is None and request["participant_info"]["gender"] is None
+
+
 def test_researcher_can_add_future_distinct_sessions_only_to_owned_study(client, researcher, participant):
     study = publish(researcher, manual_review=True, slots=[])
     path = f"/api/researcher/studies/{study['id']}/slots"

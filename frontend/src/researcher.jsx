@@ -92,18 +92,39 @@ function PublishedStudy({ study, onBack, onAddSlots }) {
   return <div className="page detail-page"><Back onClick={onBack}>Back to my studies</Back><Heading title={study.title} description={study.summary} /><div className="detail-facts"><span><strong>{money(study.compensation)}</strong>compensation</span><span><strong>{study.duration} min</strong>duration</span><span><strong>{study.booked_count}</strong>bookings</span><span><strong>{formatLabel(study.mode)}</strong>{study.location}</span></div><section className="detail-section"><h2>Description</h2><p className="preserve-lines">{study.description}</p>{study.manual_review && <p>Researcher review required before booking. Manage requests in Review requests.</p>}</section><section className="detail-section"><div className="section-title"><h2>Sessions</h2><Button secondary onClick={() => setAdding(!adding)}>{adding ? 'Cancel' : 'Add sessions'}{!adding && <Plus size={15} />}</Button></div>{study.slots.length ? <div className="simple-table">{study.slots.map((slot) => <div className="simple-row" key={slot.id}><span>{dateLabel(slot.starts_at)} · {timeLabel(slot.starts_at)}</span><span>{slot.remaining} / {slot.capacity} places left</span></div>)}</div> : <p>No sessions listed.</p>}{adding && <form className="add-sessions" onSubmit={save}><SlotsEditor slots={slots} onChange={setSlots} /><ErrorMessage message={error} /><div className="section-action"><Button disabled={busy || slots.length === 0}>{busy ? 'Saving…' : 'Save sessions'}</Button></div></form>}</section></div>;
 }
 
+function answerLabel(value) {
+  if (value === null) return 'Not provided';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.length ? value.join(', ') : 'None reported';
+  return String(value);
+}
+
 function ReviewRequest({ request, onDecision }) {
   const [note, setNote] = useState('');
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const unmet = request.screening_checks.some((check) => check.status === 'not_met');
+  const missing = request.screening_checks.filter((check) => check.status === 'missing').length;
   async function decide(decision) {
     setBusy(true); setError('');
     try { await onDecision(request.id, { decision, note, eligibility_checked: checked }); }
     catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
-  return <section className="review-request"><div className="section-title"><div><h2>{request.participant_name}</h2><p>{request.title}</p></div><span className={`status ${request.status === 'approved' ? 'success' : request.status === 'pending' ? 'pending' : ''}`}>{request.status}</span></div>{request.note && <p className="review-message">{request.note}</p>}{request.status === 'pending' ? <><Field label="Decision note" hint="Visible to the participant. Keep sensitive details outside this demo."><textarea rows="2" value={note} maxLength="1000" onChange={(event) => setNote(event.target.value)} /></Field><label className="check review-check"><input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} />I completed the necessary eligibility and safety checks outside this demo.</label><ErrorMessage message={error} /><div className="review-actions"><Button disabled={busy || !checked} onClick={() => decide('approved')}>{busy ? 'Saving…' : 'Approve request'}</Button><Button secondary disabled={busy} onClick={() => decide('declined')}>Decline</Button></div></> : request.decision_note && <p className="review-message">{request.decision_note}</p>}</section>;
+  return <section className="review-request">
+    <div className="section-title"><div><h2>{request.participant_name}</h2><p>{request.title}</p></div><span className={`status ${request.status === 'approved' ? 'success' : request.status === 'pending' ? 'pending' : ''}`}>{request.status}</span></div>
+    <dl className="review-participant">{[['age', 'Age'], ['gender', 'Gender'], ['university', 'University'], ['first_language', 'First language'], ['email', 'Email']].map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{answerLabel(request.participant_info[key])}</dd></div>)}</dl>
+    {request.note && <div className="review-context"><h3>Participant message</h3><p className="preserve-lines">{request.note}</p></div>}
+    <div className="review-context"><h3>Study requirements</h3><p className="preserve-lines">{request.requirements || 'No requirements were recorded. Confirm them before deciding.'}</p></div>
+    <div className="review-context"><h3>Why review is needed</h3>{request.review_notes.length ? <ul>{[...new Set(request.review_notes)].map((reason) => <li key={reason}>{reason}</li>)}</ul> : <p>This study requires researcher confirmation of its requirements.</p>}</div>
+    <div className="review-context"><h3>Screening answers</h3><p className="small-note">Current answers for this study. Missing information is not a pass.</p>{request.screening_checks.length ? <div className="review-screening">{request.screening_checks.map((check) => <div className="review-screening-row" key={check.id}><div><h4>{check.question}</h4><p>Required: {check.expected_answer}</p><small>{check.source}</small></div><div><strong>{answerLabel(check.answer)}</strong><small>{check.answer_source === 'profile' ? 'Prescreen' : check.answer_source === 'study' ? 'Study answer' : 'Not answered'}</small></div><span className={`status ${check.status === 'met' ? 'success' : check.status === 'missing' ? 'pending' : 'failure'}`}>{({ met: 'Meets requirement', missing: 'Missing answer', not_met: 'Does not meet' })[check.status]}</span></div>)}</div> : <p>No structured screening answers are available. Confirm the requirements above with the participant.</p>}</div>
+    {request.status === 'pending' ? <>
+      <p className="review-check-summary">{unmet ? 'Current answers do not meet a requirement. Approval is blocked.' : missing ? `${missing} screening answer${missing === 1 ? ' is' : 's are'} still missing. Approval clears manual review; the participant must complete screening before booking.` : 'Confirm any requirements not covered by the answers above before approving.'}</p>
+      <Field label="Decision note" hint="Visible to the participant. Keep sensitive details outside this demo."><textarea rows="2" value={note} maxLength="1000" onChange={(event) => setNote(event.target.value)} /></Field>
+      <label className="check review-check"><input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} />I reviewed these answers and completed any remaining eligibility and safety checks.</label><ErrorMessage message={error} /><div className="review-actions"><Button disabled={busy || !checked || unmet} onClick={() => decide('approved')}>{busy ? 'Saving…' : 'Approve request'}</Button><Button secondary disabled={busy} onClick={() => decide('declined')}>Decline</Button></div>
+    </> : request.decision_note && <p className="review-message">{request.decision_note}</p>}
+  </section>;
 }
 
 export default function Researcher({ account, bootstrap, onLogout }) {
