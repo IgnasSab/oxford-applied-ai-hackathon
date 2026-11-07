@@ -1,0 +1,341 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-07T14:01:06.773284+00:00",
+  "title": "Design System: StudyMatch",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "displayName": "Ink",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.01853 280.59)",
+          "oklch(26.43% 0.01853 280.59)",
+          "oklch(37.86% 0.01853 280.59)",
+          "oklch(49.29% 0.01853 280.59)",
+          "oklch(60.71% 0.01853 280.59)",
+          "oklch(72.14% 0.01853 280.59)",
+          "oklch(83.57% 0.01853 280.59)",
+          "oklch(95.00% 0.01853 280.59)"
+        ]
+      },
+      "muted": {
+        "displayName": "Muted slate",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.01951 271.02)",
+          "oklch(26.43% 0.01951 271.02)",
+          "oklch(37.86% 0.01951 271.02)",
+          "oklch(49.29% 0.01951 271.02)",
+          "oklch(60.71% 0.01951 271.02)",
+          "oklch(72.14% 0.01951 271.02)",
+          "oklch(83.57% 0.01951 271.02)",
+          "oklch(95.00% 0.01951 271.02)"
+        ]
+      },
+      "soft": {
+        "displayName": "Soft canvas",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.00286 264.54)",
+          "oklch(26.43% 0.00286 264.54)",
+          "oklch(37.86% 0.00286 264.54)",
+          "oklch(49.29% 0.00286 264.54)",
+          "oklch(60.71% 0.00286 264.54)",
+          "oklch(72.14% 0.00286 264.54)",
+          "oklch(83.57% 0.00286 264.54)",
+          "oklch(95.00% 0.00286 264.54)"
+        ]
+      },
+      "rail": {
+        "displayName": "Pale rail",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.00265 286.35)",
+          "oklch(26.43% 0.00265 286.35)",
+          "oklch(37.86% 0.00265 286.35)",
+          "oklch(49.29% 0.00265 286.35)",
+          "oklch(60.71% 0.00265 286.35)",
+          "oklch(72.14% 0.00265 286.35)",
+          "oklch(83.57% 0.00265 286.35)",
+          "oklch(95.00% 0.00265 286.35)"
+        ]
+      },
+      "line": {
+        "displayName": "Divider",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.00681 277.16)",
+          "oklch(26.43% 0.00681 277.16)",
+          "oklch(37.86% 0.00681 277.16)",
+          "oklch(49.29% 0.00681 277.16)",
+          "oklch(60.71% 0.00681 277.16)",
+          "oklch(72.14% 0.00681 277.16)",
+          "oklch(83.57% 0.00681 277.16)",
+          "oklch(95.00% 0.00681 277.16)"
+        ]
+      },
+      "accent": {
+        "displayName": "Indigo",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.17699 282.73)",
+          "oklch(26.43% 0.17699 282.73)",
+          "oklch(37.86% 0.17699 282.73)",
+          "oklch(49.29% 0.17699 282.73)",
+          "oklch(60.71% 0.17699 282.73)",
+          "oklch(72.14% 0.17699 282.73)",
+          "oklch(83.57% 0.17699 282.73)",
+          "oklch(95.00% 0.17699 282.73)"
+        ]
+      },
+      "accent-hover": {
+        "displayName": "Deep indigo",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.16872 281.89)",
+          "oklch(26.43% 0.16872 281.89)",
+          "oklch(37.86% 0.16872 281.89)",
+          "oklch(49.29% 0.16872 281.89)",
+          "oklch(60.71% 0.16872 281.89)",
+          "oklch(72.14% 0.16872 281.89)",
+          "oklch(83.57% 0.16872 281.89)",
+          "oklch(95.00% 0.16872 281.89)"
+        ]
+      },
+      "success": {
+        "displayName": "Success green",
+        "role": "semantic",
+        "tonalRamp": [
+          "oklch(15.00% 0.08798 163.11)",
+          "oklch(26.43% 0.08798 163.11)",
+          "oklch(37.86% 0.08798 163.11)",
+          "oklch(49.29% 0.08798 163.11)",
+          "oklch(60.71% 0.08798 163.11)",
+          "oklch(72.14% 0.08798 163.11)",
+          "oklch(83.57% 0.08798 163.11)",
+          "oklch(95.00% 0.08798 163.11)"
+        ]
+      },
+      "success-soft": {
+        "displayName": "Success tint",
+        "role": "semantic",
+        "tonalRamp": [
+          "oklch(15.00% 0.01156 162.05)",
+          "oklch(26.43% 0.01156 162.05)",
+          "oklch(37.86% 0.01156 162.05)",
+          "oklch(49.29% 0.01156 162.05)",
+          "oklch(60.71% 0.01156 162.05)",
+          "oklch(72.14% 0.01156 162.05)",
+          "oklch(83.57% 0.01156 162.05)",
+          "oklch(95.00% 0.01156 162.05)"
+        ]
+      },
+      "warning": {
+        "displayName": "Warning amber",
+        "role": "semantic",
+        "tonalRamp": [
+          "oklch(15.00% 0.09923 73.64)",
+          "oklch(26.43% 0.09923 73.64)",
+          "oklch(37.86% 0.09923 73.64)",
+          "oklch(49.29% 0.09923 73.64)",
+          "oklch(60.71% 0.09923 73.64)",
+          "oklch(72.14% 0.09923 73.64)",
+          "oklch(83.57% 0.09923 73.64)",
+          "oklch(95.00% 0.09923 73.64)"
+        ]
+      },
+      "warning-soft": {
+        "displayName": "Warning tint",
+        "role": "semantic",
+        "tonalRamp": [
+          "oklch(15.00% 0.01831 86.15)",
+          "oklch(26.43% 0.01831 86.15)",
+          "oklch(37.86% 0.01831 86.15)",
+          "oklch(49.29% 0.01831 86.15)",
+          "oklch(60.71% 0.01831 86.15)",
+          "oklch(72.14% 0.01831 86.15)",
+          "oklch(83.57% 0.01831 86.15)",
+          "oklch(95.00% 0.01831 86.15)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page headings; reduced on mobile."
+      },
+      "title": {
+        "displayName": "Section title",
+        "purpose": "Working-section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base application text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Visible form labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "notice",
+        "value": "0 5px 20px #20202a20",
+        "purpose": "Transient notice only; working containers remain flat."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms",
+        "purpose": "Existing background, border and disclosure transitions."
+      },
+      {
+        "name": "notice-in",
+        "value": "180ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Clip-path notice reveal; disabled with reduced-motion preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "max-width-650",
+        "value": "650px"
+      },
+      {
+        "name": "max-width-900",
+        "value": "900px"
+      },
+      {
+        "name": "max-width-1150",
+        "value": "1150px"
+      },
+      {
+        "name": "min-width-1650",
+        "value": "1650px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main task action; indigo hover, pressed and disabled states. Preferences and questionnaire use independent explicit saves.",
+      "html": "<button class=\"ds-button\">Save preferences</button>",
+      "css": ".ds-button { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-button { cursor: pointer; } .ds-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 36px; padding: 7px 13px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: white; font-size: .8125rem; font-weight: 550; white-space: nowrap; transition: background 150ms, border-color 150ms; } .ds-button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); } .ds-button:active:not(:disabled) { background: #3d338e; } .ds-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-button:disabled { cursor: not-allowed; opacity: .48; } @media (prefers-reduced-motion: reduce) { .ds-button { transition: none !important; animation: none !important; } }"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting outlined action.",
+      "html": "<button class=\"ds-button ds-secondary\">Back</button>",
+      "css": ".ds-button { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-button { cursor: pointer; } .ds-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 36px; padding: 7px 13px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: white; font-size: .8125rem; font-weight: 550; white-space: nowrap; transition: background 150ms, border-color 150ms; } .ds-button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); } .ds-button:active:not(:disabled) { background: #3d338e; } .ds-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-button:disabled { cursor: not-allowed; opacity: .48; } @media (prefers-reduced-motion: reduce) { .ds-button { transition: none !important; animation: none !important; } } .ds-button.ds-secondary { background: #fff; border-color: #dcdde4; color: var(--ink); } .ds-button.ds-secondary:hover:not(:disabled) { background: var(--soft); border-color: #bfc2cc; } .ds-button.ds-secondary:active:not(:disabled) { background: #eff0f4; }"
+    },
+    {
+      "name": "Text button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Unfilled supporting action with hover underline.",
+      "html": "<button class=\"ds-text-button\">Back to studies</button>",
+      "css": ".ds-text-button { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-text-button { cursor: pointer; } .ds-text-button { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: var(--accent); font-size: .8125rem; font-weight: 500; text-align: left; } .ds-text-button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; } .ds-text-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-text-button:disabled { cursor: not-allowed; opacity: .48; }"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Compact named action; the sample uses the existing close icon.",
+      "html": "<button class=\"ds-icon-button\" aria-label=\"Dismiss message\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button>",
+      "css": ".ds-icon-button { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-icon-button { cursor: pointer; } .ds-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 5px; color: var(--muted); background: transparent; } .ds-icon-button:hover { color: var(--ink); background: #e9e9ee; } .ds-icon-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-icon-button:disabled { cursor: not-allowed; opacity: .48; }"
+    },
+    {
+      "name": "Text field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Visible label and hint; hover, focus and disabled states.",
+      "html": "<label class=\"ds-field\"><span>Display name</span><input placeholder=\"Your name\"/><small>Use fictional details in this demo.</small></label>",
+      "css": ".ds-field { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 500; } .ds-field small { color: var(--muted); font-weight: 400; font-size: .75rem; line-height: 1.6; } .ds-field input { width: 100%; min-width: 0; min-height: 39px; color: var(--ink); background: #fff; border: 1px solid #d8dae2; border-radius: 5px; padding: 8px 10px; font-size: .8125rem; font-weight: 400; transition: border-color 150ms; } .ds-field input::placeholder { color: #6b6f7d; opacity: 1; } .ds-field input:hover:not(:disabled) { border-color: #aeb1c0; } .ds-field input:focus { border-color: var(--accent); } .ds-field input:disabled { background: #f4f4f7; color: var(--muted); cursor: not-allowed; } .ds-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } @media (prefers-reduced-motion: reduce) { .ds-field input { transition: none !important; animation: none !important; } }"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "Collapsible left rail: 220px expanded, 195px at max-width 1150px, 72px collapsed. Logo mark remains visible; compact icons retain accessible labels. At max-width 650px, the full logo stays while the two-column destination grid hides or opens. No right preferences sidebar.",
+      "html": "<div class=\"ds-navigation\"><strong>StudyMatch</strong><nav aria-label=\"Main navigation\"><button class=\"ds-active\" aria-current=\"page\">Discover studies</button><button>My schedule</button><button>Profile &amp; preferences</button><button>Notifications</button></nav></div>",
+      "css": ".ds-navigation { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-navigation { background: var(--rail); padding: 24px 13px 12px; } .ds-navigation nav { display: flex; flex-direction: column; gap: 4px; } .ds-navigation nav button { display: flex; gap: 9px; align-items: center; padding: 9px 10px; border: 0; border-radius: 5px; background: none; text-align: left; font-size: .8125rem; color: #555966; } .ds-navigation nav button:hover { background: #ededf1; color: var(--ink); } .ds-navigation nav button.ds-active { color: #5147aa; background: #e9e7f4; font-weight: 550; } .ds-navigation nav button { font-family: inherit; line-height: 1.55; cursor: pointer; } .ds-navigation nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }"
+    },
+    {
+      "name": "Status labels",
+      "kind": "chip",
+      "refersTo": "status",
+      "description": "Explicit screening state; green ready/booked, amber questions, neutral review.",
+      "html": "<div><span class=\"ds-status ds-success\"><span class=\"ds-status-dot\"></span>Ready to book</span> <span class=\"ds-status ds-pending\"><span class=\"ds-status-dot\"></span>1 question left</span> <span class=\"ds-status\"><span class=\"ds-status-dot\"></span>Researcher review</span></div>",
+      "css": ".ds-status { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-status { display: inline-flex; align-items: center; gap: 5px; border-radius: 4px; padding: 3px 6px; font-size: .75rem; font-weight: 500; color: #616573; background: #f0f1f4; max-width: 100%; white-space: normal; } .ds-status.ds-success { background: var(--success-soft); color: var(--success); } .ds-status.ds-pending { background: var(--warning-soft); color: var(--warning); } .ds-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }"
+    },
+    {
+      "name": "Interest choices",
+      "kind": "chip",
+      "refersTo": "tag-picker",
+      "description": "Checkbox choices for participant interests and required researcher topics; selected appearance mirrors the React selected class.",
+      "html": "<div class=\"ds-tag-picker\"><label class=\"ds-selected\"><input type=\"checkbox\" checked/><span>Decision making</span></label><label><input type=\"checkbox\"/><span>Memory</span></label></div>",
+      "css": ".ds-tag-picker { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-tag-picker { display: flex; flex-wrap: wrap; gap: 8px; } .ds-tag-picker label { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #dddfe7; border-radius: 5px; padding: 7px 10px; cursor: pointer; color: #5e626f; font-size: .75rem; transition: background 150ms, border-color 150ms; } .ds-tag-picker label.ds-selected { color: #5043a8; background: #f3f1ff; border-color: #c8c1ef; } .ds-tag-picker label:hover { border-color: #a8a3cc; } .ds-tag-picker input { width: 14px; height: 14px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; margin: 2px 0 0; } .ds-tag-picker input { width: 12px; height: 12px; margin-top: 0; } .ds-tag-picker input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } @media (prefers-reduced-motion: reduce) { .ds-tag-picker label { transition: none !important; animation: none !important; } }"
+    },
+    {
+      "name": "Import container",
+      "kind": "card",
+      "refersTo": "import-section",
+      "description": "Collapsible PDF/text import above study facts. Editable text uses cleaned description and requirements; original source appears in a separate disclosure. Researcher topic or fact edits invalidate the preview.",
+      "html": "<details class=\"ds-import-section\"><summary>Simple PDF or text import</summary><p>AI prepares screening and convenience from your description.</p></details>",
+      "css": ".ds-import-section { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-import-section h2 { font-size: 1rem; line-height: 1.45; font-weight: 620; letter-spacing: -.012em; } .ds-import-section h2, .ds-import-section p { margin: 0; } .ds-import-section p { color: var(--muted); } .ds-import-section { padding: 21px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 28px; background: #fcfcfe; } .ds-import-section h2 { display: flex; align-items: center; gap: 8px; font-size: .875rem; } .ds-import-section > p { margin-top: 8px; font-size: .75rem; } .ds-import-section summary { cursor: pointer; font-weight: 550; }"
+    },
+    {
+      "name": "Study row",
+      "kind": "custom",
+      "refersTo": "study-row",
+      "description": "Aligned study facts and a separate 1–5 preference-fit column; synthetic preview.",
+      "html": "<article class=\"ds-study-row\"><button class=\"ds-study-open\"><div class=\"ds-study-main\"><div class=\"ds-study-title-line\"><h2>Synthetic study</h2></div><p class=\"ds-study-summary\">A short research session.</p><div class=\"ds-study-meta\"><strong>£10</strong><span>30 min</span><span>Online</span><span>Screening before scheduling</span></div></div><div class=\"ds-study-score\"><strong>4.2<span> / 5</span></strong><span>preference fit</span></div></button></article>",
+      "css": ".ds-study-open { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-study-open { cursor: pointer; } .ds-study-open h2, .ds-study-open p { margin: 0; } .ds-study-open p { color: var(--muted); } .ds-study-open strong { font-weight: 600; } .ds-study-row h2 { font-size: 1rem; line-height: 1.45; font-weight: 620; letter-spacing: -.012em; } .ds-study-row { border-bottom: 1px solid var(--line); } .ds-study-open { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 20px; border: 0; background: white; padding: 22px 4px; text-align: left; transition: background 150ms; } .ds-study-open:hover { background: #fafafd; } .ds-study-main { min-width: 0; } .ds-study-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; } .ds-study-row h2 { font-size: .9375rem; font-weight: 600; } .ds-study-summary { margin-top: 8px; font-size: .8125rem; line-height: 1.6; max-width: 75ch; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } .ds-study-meta { display: flex; flex-wrap: wrap; gap: 8px 15px; align-items: center; margin-top: 14px; font-size: .75rem; color: var(--muted); } .ds-study-meta strong { color: var(--ink); font-size: .8125rem; } .ds-study-meta span { display: inline-flex; align-items: center; gap: 5px; } .ds-study-score { align-self: center; text-align: right; font-variant-numeric: tabular-nums; } .ds-study-score > strong { font-size: 1.125rem; color: #50499a; display: block; letter-spacing: -.02em; } .ds-study-score strong span { color: var(--muted); font-weight: 400; font-size: .75rem; } .ds-study-score > span { font-size: .75rem; color: var(--muted); } .ds-study-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-study-open:focus-visible { outline-offset: -2px; border-radius: 4px; } @media (prefers-reduced-motion: reduce) { .ds-study-open { transition: none !important; animation: none !important; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Linear-style operating workspace",
+    "overview": "StudyMatch is a compact, precise workspace for research participation and recruitment. A pale neutral navigation rail, white working canvas, restrained indigo actions and aligned study rows make the task hierarchy visible without decorative imagery.\n\nThe interface is flat and quiet: crisp system-sans typography, thin dividers and small corners carry structure. Preference fit, scientific eligibility and researcher approval remain distinct concepts with explicit text. The synthetic-data disclosure stays visible on desktop and mobile.",
+    "keyCharacteristics": [
+      "Collapsible left navigation and flexible, aligned working rows; no right preference panels.",
+      "Restrained indigo actions on light neutral surfaces.",
+      "Text-labelled states and preference scores; inline score explanations below study content.",
+      "Responsive reflow with the logo, demo label and logout retained when navigation closes.",
+      "Signup saves questionnaire, interests and priorities together; existing profiles retain direct tabs and independent saves.",
+      "Seven optional general questions with clear-to-unknown Yes/No controls and explicit language proficiency; medical questionnaire removed.",
+      "Green/grey week/day calendar with enlarged 90px half-hour rows and wrapped titles; future bookings beside it above 1150px or below at narrower widths.",
+      "Flat notifications list with dates and safe study links; topic and eligibility filters in discovery."
+    ],
+    "rules": [
+      {
+        "name": "The State Text Rule",
+        "body": "Color supports explicit status wording; it never replaces the distinction between preference fit, eligibility and publication approval.",
+        "section": "colors"
+      },
+      {
+        "name": "The Decision Label Rule",
+        "body": "Screening status, preference-fit labels, next availability and slot capacity stay at least (.75rem / 12px at the default root), including mobile. Some secondary navigation and bookkeeping captions use smaller existing sizes; this is not a claim that all interface text is 12px or larger.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do preserve aligned rows, thin dividers and the light navigation rail.",
+      "Do keep decision labels readable at the documented mobile size.",
+      "Do pair semantic color with explicit status text.",
+      "Do keep synthetic-data disclosure visible on mobile and desktop.",
+      "Do retain keyboard focus, reduced-motion behavior and honest loading, empty and error states."
+    ],
+    "donts": [
+      "Don't reintroduce the rejected cream/serif marketing hero, gradients, emoji icons or ornamental imagery.",
+      "Don't replace working rows with decorative equal-card grids.",
+      "Don't reintroduce right preference panels or a Continue gate for preference editing.",
+      "Don't conflate preference fit with eligibility, researcher approval or medical clearance.",
+      "Don't hide mobile status or synthetic-data wording to make the layout fit.",
+      "Don't promote illustrative sidecar tonal ramps into application tokens."
+    ]
+  }
+}

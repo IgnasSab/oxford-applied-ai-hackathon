@@ -2,3 +2,12 @@
 .env.*
 !.env.example
 TXT/
+.venv/
+__pycache__/
+.pytest_cache/
+*.sqlite3
+*.sqlite3-*
+*.log
+frontend/node_modules/
+frontend/dist/
+.impeccable/review/
