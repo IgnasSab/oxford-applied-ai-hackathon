@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { BooleanField, Button, ChoiceField, ErrorMessage, Field, Heading, TagPicker, Weights } from './components';
 
 const preferenceFields = ['interests', 'preferred_mode', 'preferred_location', 'max_duration', 'preferred_times', 'notifications', 'weights', 'preference_filters'];
-const newProfile = (name, sections) => ({ name, birth_date: '', handedness: '', first_language: '', additional_languages: [], language_levels: {}, english: null, vision: null, psychology_background: null, university: '', has_laptop: null, has_smartphone: null, has_headphones: null, comfortable_webcam: null, comfortable_audio_recording: null, comfortable_video_recording: null, free_response: '', interests: [], preferred_mode: 'any', preferred_location: '', max_duration: 480, preferred_times: [], notifications: 'off', weights: { interest: 3, compensation: 3, convenience: 3 }, preference_filters: false, ...Object.fromEntries(sections.flatMap((section) => section.fields.map(({ field }) => [field, null]))) });
+const newProfile = (name, sections) => ({ name, birth_date: '', handedness: '', first_language: '', additional_languages: [], language_levels: {}, english: null, vision: null, psychology_background: null, university: '', has_laptop: null, has_smartphone: null, has_headphones: null, comfortable_webcam: null, comfortable_audio_recording: null, comfortable_video_recording: null, interests: [], preferred_mode: 'any', preferred_location: '', max_duration: 480, preferred_times: [], notifications: 'off', weights: { interest: 3, compensation: 3, convenience: 3 }, preference_filters: false, ...Object.fromEntries(sections.flatMap((section) => section.fields.map(({ field }) => [field, null]))) });
 
 export default function ProfileForm({ profile, account, bootstrap, onSave, onSavePreferences, onCancel }) {
   const [draft, setDraft] = useState(profile || newProfile(account.name, bootstrap.prescreen_sections));
@@ -57,7 +57,6 @@ export default function ProfileForm({ profile, account, bootstrap, onSave, onSav
           ['comfortable_video_recording', 'Are you willing to be recorded on video?'],
         ].map(([key, label]) => <BooleanField key={key} label={label} value={draft[key]} onChange={(value) => update(key, value)} />)}</div></section>
         {bootstrap.prescreen_sections.slice(0, 1).map((section) => <section className="form-section" key={section.title}><h2>{section.title}</h2><p>Optional. Unanswered questions can be asked when you join a study.</p>{optionalQuestions(section.fields)}</section>)}
-        <section className="form-section"><Field label="What would you enjoy taking part in?" hint="Optional. This note doesn’t determine eligibility."><textarea rows="3" value={draft.free_response} onChange={(event) => update('free_response', event.target.value)} maxLength="1000" placeholder="I enjoy strategy games and learning how people make decisions…" /></Field></section>
       </>}
       {(!account.onboarded || tab === 'preferences') && <>
         <section className="form-section"><h2>Interests</h2><TagPicker topics={bootstrap.topics} selected={draft.interests} onChange={(value) => update('interests', value)} /></section>
