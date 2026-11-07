@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import math
 import re
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StringConstraints, field_validator, model_validator
+
+from .matching import age_on_date
 
 
 class InputModel(BaseModel):
@@ -35,13 +37,20 @@ class Weights(InputModel):
 
 class ParticipantInput(InputModel):
     name: str = Field(min_length=1, max_length=80)
-    age: int = Field(ge=18, le=120)
+    birth_date: date
     handedness: Literal["left", "right", "ambidextrous"]
     first_language: str = Field(min_length=1, max_length=80)
+    additional_languages: list[str] = Field(default_factory=list, max_length=20)
     english: StrictBool
     vision: StrictBool
     psychology_background: StrictBool
-    university: str = Field(max_length=150)
+    university: str = Field(min_length=1, max_length=150)
+    has_laptop: StrictBool
+    has_smartphone: StrictBool
+    has_headphones: StrictBool
+    comfortable_webcam: StrictBool
+    comfortable_audio_recording: StrictBool
+    comfortable_video_recording: StrictBool
     free_response: str = Field(default="", max_length=1000)
     interests: list[str] = Field(max_length=16)
     preferred_mode: Literal["online", "in_person", "any"] = "any"
@@ -52,9 +61,24 @@ class ParticipantInput(InputModel):
     weights: Weights = Field(default_factory=Weights)
 
 
+    @field_validator("birth_date")
+    @classmethod
+    def adult_birth_date(cls, value):
+        if not 18 <= age_on_date(value, date.today()) <= 120:
+            raise ValueError("Participants must be aged 18–120.")
+        return value
+
+    @field_validator("additional_languages")
+    @classmethod
+    def valid_languages(cls, values):
+        if any(not value.strip() or len(value) > 80 for value in values):
+            raise ValueError("Enter a language name of 1–80 characters.")
+        return list(dict.fromkeys(value.strip() for value in values))
+
+
 class Rule(InputModel):
     id: str = Field(min_length=1, max_length=80, pattern=r"^[a-zA-Z0-9_-]+$")
-    field: Literal["age", "handedness", "first_language", "english", "vision", "psychology_background", "university", "question"]
+    field: Literal["age", "handedness", "first_language", "english", "vision", "psychology_background", "university", "additional_languages", "has_laptop", "has_smartphone", "has_headphones", "comfortable_webcam", "comfortable_audio_recording", "comfortable_video_recording", "question"]
     answer_type: Literal["boolean", "number", "choice"]
     operator: Literal["between", "equals", "in"]
     value: str = Field(min_length=1, max_length=1000)
@@ -64,7 +88,7 @@ class Rule(InputModel):
 
     @model_validator(mode="after")
     def valid_operation(self):
-        canonical_types = {"age": "number", "english": "boolean", "vision": "boolean", "psychology_background": "boolean", "handedness": "choice", "first_language": "choice", "university": "choice"}
+        canonical_types = {"age": "number", "english": "boolean", "vision": "boolean", "psychology_background": "boolean", "handedness": "choice", "first_language": "choice", "university": "choice", "additional_languages": "choice", "has_laptop": "boolean", "has_smartphone": "boolean", "has_headphones": "boolean", "comfortable_webcam": "boolean", "comfortable_audio_recording": "boolean", "comfortable_video_recording": "boolean"}
         if self.field in canonical_types and self.answer_type != canonical_types[self.field]:
             raise ValueError("Answer type must match the selected profile field.")
         if self.answer_type == "boolean":
@@ -124,22 +148,44 @@ class SlotInput(InputModel):
         return self
 
 
-class StudyInput(StudyFields):
-    draft_id: int | None = None
-    rules: list[Rule] = Field(max_length=30)
-    manual_review: bool
-    review_notes: list[str] = Field(default_factory=list, max_length=30)
-    approved: Literal[True]
+class StudyPrepareInput(InputModel):
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(min_length=10, max_length=20000)
+    mode: Literal["online", "in_person"]
+    location: str = Field(min_length=1, max_length=200)
+    duration: int = Field(ge=5, le=480)
+    compensation: float = Field(ge=0, le=10000, allow_inf_nan=False)
+
+
+class SlotsInput(InputModel):
     slots: list[SlotInput] = Field(max_length=30)
 
     @model_validator(mode="after")
-    def valid_study(self):
-        if len({rule.id for rule in self.rules}) != len(self.rules):
-            raise ValueError("Screening rule ids must be unique.")
-        if not self.manual_review and not self.slots:
-            raise ValueError("Add at least one future session.")
+    def unique_times(self):
         if len({slot.starts_at for slot in self.slots}) != len(self.slots):
             raise ValueError("Session times must be distinct.")
+        return self
+
+
+class StudyInput(SlotsInput):
+    draft_id: int
+    approved: Literal[True]
+
+
+class ReviewRequestInput(InputModel):
+    study_id: int
+    note: str = Field(default="", max_length=1000)
+
+
+class ReviewDecisionInput(InputModel):
+    decision: Literal["approved", "declined"]
+    note: str = Field(default="", max_length=1000)
+    eligibility_checked: StrictBool
+
+    @model_validator(mode="after")
+    def confirmed_checks(self):
+        if self.decision == "approved" and not self.eligibility_checked:
+            raise ValueError("Confirm that the required eligibility and safety checks were completed before approving.")
         return self
 
 

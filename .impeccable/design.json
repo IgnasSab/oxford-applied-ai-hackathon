@@ -254,7 +254,7 @@
       "refersTo": "field",
       "description": "Visible label and hint; hover, focus and disabled states.",
       "html": "<label class=\"ds-field\"><span>Display name</span><input placeholder=\"Your name\"/><small>Use fictional details in this demo.</small></label>",
-      "css": ".ds-field { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 500; } .ds-field small { color: var(--muted); font-weight: 400; font-size: .6875rem; line-height: 1.6; } .ds-field input { width: 100%; min-width: 0; min-height: 39px; color: var(--ink); background: #fff; border: 1px solid #d8dae2; border-radius: 5px; padding: 8px 10px; font-size: .8125rem; font-weight: 400; transition: border-color 150ms; } .ds-field input::placeholder { color: #6b6f7d; opacity: 1; } .ds-field input:hover:not(:disabled) { border-color: #aeb1c0; } .ds-field input:focus { border-color: var(--accent); } .ds-field input:disabled { background: #f4f4f7; color: var(--muted); cursor: not-allowed; } .ds-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } @media (prefers-reduced-motion: reduce) { .ds-field input { transition: none !important; animation: none !important; } }"
+      "css": ".ds-field { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 500; } .ds-field small { color: var(--muted); font-weight: 400; font-size: .75rem; line-height: 1.6; } .ds-field input { width: 100%; min-width: 0; min-height: 39px; color: var(--ink); background: #fff; border: 1px solid #d8dae2; border-radius: 5px; padding: 8px 10px; font-size: .8125rem; font-weight: 400; transition: border-color 150ms; } .ds-field input::placeholder { color: #6b6f7d; opacity: 1; } .ds-field input:hover:not(:disabled) { border-color: #aeb1c0; } .ds-field input:focus { border-color: var(--accent); } .ds-field input:disabled { background: #f4f4f7; color: var(--muted); cursor: not-allowed; } .ds-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } @media (prefers-reduced-motion: reduce) { .ds-field input { transition: none !important; animation: none !important; } }"
     },
     {
       "name": "Navigation",
@@ -284,9 +284,9 @@
       "name": "Import container",
       "kind": "card",
       "refersTo": "import-section",
-      "description": "Quiet bordered container for document-assisted creation.",
-      "html": "<section class=\"ds-import-section\"><h2>Start from a document</h2><p>AI drafts the study details, screening questions and convenience rating.</p></section>",
-      "css": ".ds-import-section { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-import-section h2 { font-size: 1rem; line-height: 1.45; font-weight: 620; letter-spacing: -.012em; } .ds-import-section h2, .ds-import-section p { margin: 0; } .ds-import-section p { color: var(--muted); } .ds-import-section { padding: 21px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 28px; background: #fcfcfe; } .ds-import-section h2 { display: flex; align-items: center; gap: 8px; font-size: .875rem; } .ds-import-section > p { margin-top: 8px; font-size: .75rem; }"
+      "description": "Collapsible PDF/text import above the study facts.",
+      "html": "<details class=\"ds-import-section\"><summary>Import a PDF or text</summary><p>AI prepares screening and convenience from your description.</p></details>",
+      "css": ".ds-import-section { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: .875rem; line-height: 1.55; color: var(--ink); } .ds-import-section h2 { font-size: 1rem; line-height: 1.45; font-weight: 620; letter-spacing: -.012em; } .ds-import-section h2, .ds-import-section p { margin: 0; } .ds-import-section p { color: var(--muted); } .ds-import-section { padding: 21px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 28px; background: #fcfcfe; } .ds-import-section h2 { display: flex; align-items: center; gap: 8px; font-size: .875rem; } .ds-import-section > p { margin-top: 8px; font-size: .75rem; } .ds-import-section summary { cursor: pointer; font-weight: 550; }"
     },
     {
       "name": "Study row",
@@ -304,7 +304,8 @@
       "Fixed-width desktop rail and flexible, aligned working rows.",
       "Restrained indigo actions on light neutral surfaces.",
       "Text-labelled states and preference scores.",
-      "Responsive reflow with visible synthetic-data disclosure."
+      "Responsive reflow with visible synthetic-data disclosure.",
+      "Optional sidebar, explicit yes/no prescreen and a green/grey week/day calendar."
     ],
     "rules": [
       {

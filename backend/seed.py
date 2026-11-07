@@ -3,6 +3,9 @@ from datetime import datetime, timedelta, timezone
 
 from .auth import hash_password
 
+LANGUAGES = ["English", "French", "German", "Spanish", "Mandarin", "Hindi"]
+UNIVERSITIES = ["University of Oxford", "Oxford Brookes University", "University of Cambridge", "University College London", "None"]
+DEMO_PRESCREEN = dict(birth_date="2002-05-14", additional_languages=[], has_laptop=True, has_smartphone=True, has_headphones=True, comfortable_webcam=False, comfortable_audio_recording=False, comfortable_video_recording=False)
 TOPICS = ["Games & Challenges", "Puzzles & Memory Games", "Virtual Reality", "Films, TV & Music", "Food & Tasting", "Social Games & Interactions", "Brain Scans & Neurotech", "Movement & Hands-on", "Visual & Attention Challenges", "Decision-Making & Rewards", "Emotions & Relationships", "Sleep & Dreams", "Language & Words", "Technology & Digital Life", "Quizzes & Personality", "Creativity & Imagination"]
 SAMPLE_DESCRIPTION = "Attention in a distracted world. Complete a visual attention task on a laboratory computer at Oxford Experimental Psychology. One 45-minute session pays £12. Recruit participants aged 18–35 who are fluent in English, have normal or corrected-to-normal vision, and have not participated in our previous visual search experiment."
 SAMPLE_RULES = [
@@ -19,7 +22,7 @@ def seed(connection):
         return
     participant_id = connection.execute("INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)", ("Alex Morgan", "participant@studymatch.demo", hash_password("StudyMatch2026!"), "participant")).lastrowid
     researcher_id = connection.execute("INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)", ("Dr Robin Taylor", "researcher@studymatch.demo", hash_password("StudyMatch2026!"), "researcher")).lastrowid
-    profile = dict(name="Alex Morgan", age=24, handedness="right", first_language="English", english=True, vision=True, psychology_background=False, university="University of Oxford", free_response="I enjoy puzzles and finding out how people make decisions.", interests=["Puzzles & Memory Games", "Decision-Making & Rewards", "Visual & Attention Challenges"], preferred_mode="any", preferred_location="", max_duration=480, preferred_times=[], weights=dict(interest=3, compensation=3, convenience=3), notifications="immediate")
+    profile = dict(DEMO_PRESCREEN, name="Alex Morgan", handedness="right", first_language="English", english=True, vision=True, psychology_background=False, university="University of Oxford", free_response="I enjoy puzzles and finding out how people make decisions.", interests=["Puzzles & Memory Games", "Decision-Making & Rewards", "Visual & Attention Challenges"], preferred_mode="any", preferred_location="", max_duration=480, preferred_times=[], weights=dict(interest=3, compensation=3, convenience=3), notifications="immediate")
     connection.execute("INSERT INTO participants(user_id,data) VALUES (?,?)", (participant_id, json.dumps(profile)))
     tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     examples = [

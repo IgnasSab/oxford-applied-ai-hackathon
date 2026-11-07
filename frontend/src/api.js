@@ -23,3 +23,8 @@ export const dateLabel = (value) => new Date(value).toLocaleDateString('en-GB', 
 export const timeLabel = (value) => new Date(value).toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });
 export const formatLabel = (mode) => mode === 'online' ? 'Online' : 'In person';
 export const scoreStudy = (study, weights) => Object.entries(weights).reduce((total, [key, weight]) => total + study.components[key] * weight, 0) / Object.values(weights).reduce((total, value) => total + value, 0);
+
+export function conflicts(slot, duration, bookings) {
+  const starts = new Date(slot.starts_at).getTime();
+  return bookings.some((booking) => starts < new Date(booking.starts_at).getTime() + booking.duration * 60000 && starts + duration * 60000 > new Date(booking.starts_at).getTime());
+}

@@ -18,9 +18,15 @@ Open http://127.0.0.1:8000. FastAPI serves the built frontend and API together. 
 
 Optional live extraction: copy `.env.example` to `.env` and set `OPENAI_API_KEY`. Never commit it. Only researcher-provided study text goes to the model; participant profiles do not. PDF extraction accepts text PDFs up to 5 MB and 20 pages. Scans need pasted text. AI failures are surfaced; the explicitly labelled sample works offline.
 
+## How AI and matching work
+
+FastAPI calls OpenAI through the Python SDK's `responses.parse`, using `gpt-4.1-mini` by default (`OPENAI_MODEL` can override it). A single structured-output request turns researcher text into study fields, eligibility rules, additional questions and a convenience score. Pydantic validates the response; source quotations and review flags are checked before storing the draft. PDF import extracts text locally first. Researchers approve the prepared study; ratings and rules cannot be supplied manually at publication. Editing the source requires a fresh preparation.
+
+Eligibility and ranking run in Python against saved data. Birth date supplies current age; university requirements use normalized affiliation names. Location, format, duration and preferred times are optional filters. The sliders combine interest overlap, hourly compensation and the saved AI convenience score without further model calls. Participant profiles and review notes are never sent to OpenAI. Seeded examples and the labelled fixed example use synthetic fixture results.
+
 ## Accounts and demo
 
-Create an account using email and password and choose Participant or Researcher. Participants complete the short profile and preferences before browsing. Accounts, profiles, reviewed studies, answers, sessions and bookings persist in ignored `backend/studymatch-v2.sqlite3`. The old prototype database remains untouched.
+Create an account using email and password and choose Participant or Researcher. Participants complete the short profile and preferences before browsing. Accounts, profiles, reviewed studies, answers, sessions and bookings persist in ignored `backend/studymatch-v2.sqlite3`. The old prototype database remains untouched. Existing accounts keep their data and bookings; profiles missing the expanded prescreen are prompted to complete it.
 
 Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
@@ -29,19 +35,19 @@ Synthetic seeded accounts (both use password `StudyMatch2026!`):
 
 Demo flow:
 
-1. Sign up as a participant; complete the seven-field profile, optional free response, and interests.
+1. Sign up as a participant; complete the 14-field prescreen, optional free response, and interests. Select a birth date; age is calculated automatically.
 2. Browse ranked studies. Move the three sliders to change priority; the 1–5 preference score is distinct from eligibility.
-3. Open a study needing screening. Answer only its remaining questions, then select a future session. Check the schedule.
-4. Sign in as researcher. Create a study manually, paste text, or upload a PDF. Review editable details, convenience rating, rules and source evidence; add a slot and approve publication.
-5. The new study appears to matching participants; confirmed bookings appear in its researcher's dashboard.
+3. Open a study needing screening. Answer only its remaining questions, then select a future session. The calendar shows booked sessions in green and available sessions in grey.
+4. Sign in as researcher. Enter study facts or upload a PDF. AI prepares screening and convenience scoring from the description. Check the preview, add slots and publish. Editing source facts requires preparing a fresh draft.
+5. The new study appears to matching participants; confirmed bookings appear in its researcher's dashboard. Studies needing human review offer a request button and an owned researcher review queue.
 
 ## Scope and team handoff
 
 - Frontend owner: `frontend/`. Backend owner: `backend/`. Product/pitch owner: demo story and rehearsal. Fourth teammate: evaluation/integration. Read [API contract](docs/api-contract.md) before changes; avoid shared-file edits in parallel.
 - Run `.\.venv\Scripts\python.exe -m pytest -q` and `npm --prefix frontend run build` before handoff.
-- Earnings uses hourly compensation, interest uses shared tags, convenience is a fixed researcher-approved 1–5 study rating. Weighted average is calculated without participant-specific model calls. Preferences filter/rank; eligibility uses explicit rules.
+- Earnings uses hourly compensation, interest uses shared tags, convenience is a fixed AI-generated 1–5 study rating. The explicitly labelled offline fixture and seeded examples use fixed synthetic scores. Weighted average is calculated without participant-specific model calls. Preferences filter/rank; eligibility uses explicit rules.
 - Local hackathon demo with synthetic data. Real password/session authentication, but no email verification, password recovery, production deployment, payments, external calendar sync, OCR, or multi-session booking.
-- Notifications are simulated in-app. Medical, safety-sensitive, conditional or unresolved criteria require investigator review and block automatic booking. A screening match is not clinical clearance.
+- Notifications are simulated in-app. Medical, safety-sensitive, conditional or unresolved criteria block automatic booking until a researcher records completed external eligibility/safety checks for that participant. Ordinary screening rules and booking safeguards still apply. AI does not grant clinical clearance.
 - Design context: [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md). The broader [project brief](STUDYMATCH_PROJECT_BRIEF.md) includes future scope beyond this demo.
 
 Event: https://luma.com/lpwg9cq4  

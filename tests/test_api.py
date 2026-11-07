@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
+import json
 
 import pytest
 from fastapi.testclient import TestClient
@@ -47,9 +48,15 @@ def signup(client, email="new@example.test", role="participant"):
     return response
 
 
+def birth_date_for_age(age):
+    return date(date.today().year - age, 1, 1).isoformat()
+
+
 def profile_input(**changes):
     profile = dict(
-        name="Fictional tester", age=24, handedness="right", first_language="English",
+        name="Fictional tester", birth_date=birth_date_for_age(24), handedness="right", first_language="English",
+        additional_languages=["French"], has_laptop=True, has_smartphone=True, has_headphones=True,
+        comfortable_webcam=True, comfortable_audio_recording=False, comfortable_video_recording=False,
         english=True, vision=True, psychology_background=False, university="Oxford",
         free_response="I enjoy visual puzzles.", interests=["Puzzles & Memory Games"],
         preferred_mode="any", preferred_location="", max_duration=480,
@@ -62,7 +69,7 @@ def profile_input(**changes):
 
 def study_input(**changes):
     study = dict(
-        draft_id=None, title="Visual puzzle session", summary="Try a set of visual puzzles.",
+        title="Visual puzzle session", summary="Try a set of visual puzzles.",
         description="Complete a short series of visual puzzles in your browser.",
         requirements="No eligibility restrictions", mode="online", location="Online",
         duration=30, compensation=10, tags=["Puzzles & Memory Games"],
@@ -75,8 +82,15 @@ def study_input(**changes):
 
 
 def publish(researcher, **changes):
-    response = researcher.post("/api/studies", json=study_input(**changes))
-    assert response.status_code in (200, 201), response.text
+    study = study_input(**changes)
+    author = {key: study[key] for key in ("title", "description", "mode", "location", "duration", "compensation")}
+    author["description"] += "\n" + study["requirements"] + "\n" + "\n".join(item["source"] for item in study["rules"])
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        mock_ai(monkeypatch, study=study)
+        prepared = researcher.post("/api/studies/prepare", json=author)
+    assert prepared.status_code == 200, prepared.text
+    response = researcher.post("/api/studies", json=draft_payload(prepared.json(), slots=study["slots"]))
+    assert response.status_code == 201, response.text
     return response.json()
 
 
@@ -106,8 +120,7 @@ def sample_draft(researcher):
 
 
 def draft_payload(draft, **changes):
-    payload = study_input(**draft["fields"], draft_id=draft["draft_id"], rules=draft["rules"],
-                          manual_review=draft["manual_review"], review_notes=draft["review_notes"])
+    payload = dict(draft_id=draft["draft_id"], approved=True, slots=study_input()["slots"])
     payload.update(changes)
     return payload
 
@@ -144,13 +157,13 @@ def test_signup_onboarding_login_logout_persist_and_protect_session(client):
 
 def test_roles_and_profiles_are_isolated(client, researcher, participant):
     assert participant.get("/api/researcher/studies").status_code == 403
-    assert participant.post("/api/studies", json=study_input()).status_code == 403
+    assert participant.post("/api/studies", json=dict(draft_id=1, approved=True, slots=study_input()["slots"])).status_code == 403
     assert researcher.get("/api/profile").status_code == 403
     assert researcher.get("/api/matches").status_code == 403
     original = participant.get("/api/profile").json()
     signup(client)
     assert client.get("/api/profile").json() is None
-    assert client.put("/api/profile", json=profile_input(age=33)).status_code == 200
+    assert client.put("/api/profile", json=profile_input(birth_date=birth_date_for_age(33))).status_code == 200
     assert participant.get("/api/profile").json() == original
     assert "participants" not in client.get("/api/bootstrap").json()
 
@@ -159,7 +172,7 @@ def test_researcher_studies_and_drafts_have_owners(client, researcher):
     private_study = publish(researcher)
     draft = sample_draft(researcher)
     signup(client, "other-researcher@example.test", "researcher")
-    assert client.get("/api/researcher/studies").json() == {"studies": [], "bookings": []}
+    assert client.get("/api/researcher/studies").json() == {"studies": [], "bookings": [], "review_requests": []}
     assert client.post("/api/studies", json=draft_payload(draft)).status_code in (403, 404)
     own = publish(client, title="Owned by second researcher")
     assert {item["id"] for item in client.get("/api/researcher/studies").json()["studies"]} == {own["id"]}
@@ -175,10 +188,12 @@ def test_sample_extraction_approval_and_single_publish(researcher):
     assert draft["mode"] == "sample"
     assert draft["source_text"] == source
     assert researcher.post("/api/studies", json=draft_payload(draft, approved=False)).status_code == 422
-    payload = draft_payload(draft, title="Researcher-reviewed title")
+    payload = draft_payload(draft)
     response = researcher.post("/api/studies", json=payload)
     assert response.status_code in (200, 201), response.text
-    assert response.json()["title"] == payload["title"]
+    assert response.json()["title"] == draft["fields"]["title"]
+    assert response.json()["convenience_score"] == draft["fields"]["convenience_score"]
+    assert response.json()["rules"] == draft["rules"]
     assert researcher.post("/api/studies", json=payload).status_code == 409
 
 
@@ -292,7 +307,7 @@ def test_expired_slots_unknown_records_and_profile_changes_rechecked(researcher,
     assert participant.post("/api/bookings", json={"slot_id": 999999}).status_code == 404
     assert participant.post("/api/answers", json={"study_id": 999999, "answers": {"missing": True}}).status_code == 404
     age_study = publish(researcher, rules=[rule("age", "number", "between", "18,30", field="age", question="How old are you?", source="Participants aged18–30.")])
-    assert participant.put("/api/profile", json=profile_input(age=50)).status_code == 200
+    assert participant.put("/api/profile", json=profile_input(birth_date=birth_date_for_age(50))).status_code == 200
     assert participant.post("/api/bookings", json={"slot_id": age_study["slots"][0]["id"]}).status_code == 409
 
 
@@ -371,14 +386,15 @@ def text_pdf(text):
     return bytes(document)
 
 
-def mock_ai(monkeypatch, *, source="aged 18-35", **field_changes):
+def mock_ai(monkeypatch, *, study=None, source="aged 18-35", **field_changes):
     from types import SimpleNamespace
     from backend.models import Extraction, StudyFields
 
     monkeypatch.setenv("OPENAI_API_KEY", "test-not-a-real-key")
-    payload = study_input(**field_changes)
+    payload = study_input(**field_changes) if study is None else study
     fields = StudyFields(**{key: payload[key] for key in StudyFields.model_fields})
-    extraction = Extraction(fields=fields, rules=[rule("age", "number", "between", "18,35", field="age", question="How old are you?", source=source)], manual_review=False, review_notes=[])
+    rules = [rule("age", "number", "between", "18,35", field="age", question="How old are you?", source=source)] if study is None else study["rules"]
+    extraction = Extraction(fields=fields, rules=rules, manual_review=payload["manual_review"], review_notes=payload["review_notes"])
     calls = []
 
     def parse(**kwargs):
@@ -405,15 +421,16 @@ def test_pdf_extracts_text_and_uses_structured_ai_without_profiles(researcher, m
     assert "participant@studymatch.demo" not in str(calls[0]["input"])
 
 
-def test_ai_safety_lock_survives_researcher_edits(researcher, participant, monkeypatch):
+def test_ai_safety_lock_cannot_be_overridden_at_publication(researcher, participant, monkeypatch):
     mock_ai(monkeypatch, description="An MRI scanning session for research.")
     response = researcher.post("/api/extract", json={"description": "Recruit adults aged 18-35 for an MRI scanning session.", "demo": False})
     assert response.status_code == 200, response.text
     draft = response.json()
     assert draft["manual_review"] is True
     payload = draft_payload(draft, manual_review=False, description="Complete a short visual puzzle task.", requirements="No extra criteria.", rules=[], review_notes=[])
-    published = researcher.post("/api/studies", json=payload)
-    assert published.status_code in (200, 201), published.text
+    assert researcher.post("/api/studies", json=payload).status_code == 422
+    published = researcher.post("/api/studies", json=draft_payload(draft))
+    assert published.status_code == 201, published.text
     study = published.json()
     assert study["manual_review"] is True
     assert match_for(participant, study)["status"] == "manual_review"
@@ -426,3 +443,181 @@ def test_ungrounded_ai_criteria_require_manual_review(researcher, monkeypatch):
     assert response.status_code == 200, response.text
     assert response.json()["manual_review"] is True
     assert response.json()["review_notes"]
+
+
+def test_preparation_owns_rules_and_convenience_without_profile_input(researcher, monkeypatch):
+    source = "Complete a browser puzzle task. Recruit people aged 18-35."
+    authored = dict(title="Visual puzzle session", description=source, mode="online", location="Online", duration=30, compensation=10)
+    assert researcher.post("/api/studies/prepare", json=authored).status_code == 503
+    calls = mock_ai(monkeypatch, convenience_score=4.6)
+    assert researcher.post("/api/studies/prepare", json=dict(authored, convenience_score=1)).status_code == 422
+    response = researcher.post("/api/studies/prepare", json=authored)
+    assert response.status_code == 200, response.text
+    draft = response.json()
+    assert draft["fields"]["convenience_score"] == 4.6
+    assert len(calls) == 1
+    model_input = str(calls[0]["input"])
+    assert source in model_input
+    assert "I enjoy visual puzzles." not in model_input
+    assert "participant@studymatch.demo" not in model_input
+    for extra in ({"convenience_score": 1}, {"rules": []}, {"manual_review": False}, {"title": "Unreviewed replacement"}):
+        assert researcher.post("/api/studies", json=draft_payload(draft, **extra)).status_code == 422
+    assert researcher.post("/api/studies", json={"approved": True, "slots": study_input()["slots"]}).status_code == 422
+    response = researcher.post("/api/studies", json=draft_payload(draft))
+    assert response.status_code == 201, response.text
+    assert response.json()["convenience_score"] == 4.6
+    assert response.json()["rules"] == draft["rules"]
+    assert len(calls) == 1
+
+
+def test_birth_date_required_and_new_boolean_answers_are_explicit(client):
+    signup(client)
+    profile = profile_input()
+    assert client.put("/api/profile", json=dict(profile, age=24)).status_code == 422
+    for birthday in (birth_date_for_age(17), birth_date_for_age(121), (date.today() + timedelta(days=1)).isoformat()):
+        assert client.put("/api/profile", json=dict(profile, birth_date=birthday)).status_code == 422
+    assert client.put("/api/profile", json=dict(profile, has_laptop=None)).status_code == 422
+    assert client.put("/api/profile", json=dict(profile, comfortable_video_recording="false")).status_code == 422
+    assert client.put("/api/profile", json=profile).status_code == 200
+    saved = client.get("/api/profile").json()
+    assert saved["birth_date"] == profile["birth_date"]
+    assert saved["comfortable_video_recording"] is False
+    assert "age" not in saved
+    bootstrap = client.get("/api/bootstrap").json()
+    assert {"English", "French", "Spanish"}.issubset(bootstrap["languages"])
+    assert {"University of Oxford", "Oxford Brookes University"}.issubset(bootstrap["universities"])
+
+
+def test_age_recomputed_on_birthday_and_ignores_stale_age(monkeypatch):
+    from backend import matching
+
+    participant = profile_input(birth_date="2000-05-20")
+    participant["age"] = 99
+    study = study_input(rules=[rule("age", "number", "between", "18,25", field="age", source="aged 18-25")])
+    for today, expected in ((date(2026, 5, 19), "eligible"), (date(2026, 5, 20), "ineligible")):
+        class CurrentDate(date):
+            @classmethod
+            def today(cls):
+                return today
+
+        monkeypatch.setattr(matching, "date", CurrentDate)
+        assert matching.eligibility(participant, study, {})[0] == expected
+
+
+def test_legacy_profile_requires_completion_without_losing_accounts_or_bookings(client, researcher):
+    account = signup(client, "legacy@example.test").json()
+    assert client.put("/api/profile", json=profile_input()).status_code == 200
+    study = publish(researcher)
+    assert client.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 201
+    legacy = profile_input()
+    legacy["age"] = 24
+    new_fields = ("birth_date", "additional_languages", "has_laptop", "has_smartphone", "has_headphones", "comfortable_webcam", "comfortable_audio_recording", "comfortable_video_recording")
+    for field in new_fields:
+        legacy.pop(field)
+    with main.database() as connection:
+        connection.execute("UPDATE participants SET data=? WHERE user_id=?", (json.dumps(legacy), account["id"]))
+        original_user = dict(connection.execute("SELECT * FROM users WHERE id=?", (account["id"],)).fetchone())
+        original_bookings = [dict(row) for row in connection.execute("SELECT * FROM bookings WHERE participant_id=?", (account["id"],))]
+    with TestClient(main.app) as reopened:
+        login(reopened, account["email"])
+        assert reopened.get("/api/auth/me").json()["onboarded"] is False
+        saved = reopened.get("/api/profile").json()
+        assert saved["birth_date"] is None
+        assert saved["has_laptop"] is None
+        assert saved["free_response"] == legacy["free_response"]
+        assert reopened.get("/api/matches").status_code in (403, 409)
+        assert reopened.put("/api/profile", json=profile_input()).status_code == 200
+        assert reopened.get("/api/auth/me").json()["onboarded"] is True
+        assert any(booking["study_id"] == study["id"] for booking in get_matches(reopened)["bookings"])
+    with main.database() as connection:
+        assert dict(connection.execute("SELECT * FROM users WHERE id=?", (account["id"],)).fetchone()) == original_user
+        assert [dict(row) for row in connection.execute("SELECT * FROM bookings WHERE participant_id=?", (account["id"],))] == original_bookings
+
+
+def test_university_aliases_new_prescreen_fields_and_language_membership(researcher, participant):
+    study = publish(researcher, rules=[
+        rule("affiliation", "choice", "equals", "University of Oxford", field="university", source="University of Oxford participants."),
+        rule("device", value="true", field="has_laptop", source="A laptop is required."),
+        rule("language", "choice", "equals", "French", field="additional_languages", source="Speaks French as an additional language."),
+        rule("video", value="false", field="comfortable_video_recording", source="Participants are not comfortable being video recorded."),
+    ])
+    profile = profile_input(university="Oxford", additional_languages=["french"])
+    assert participant.put("/api/profile", json=profile).status_code == 200
+    assert match_for(participant, study)["status"] == "eligible"
+    for changes in ({"university": "University of Cambridge"}, {"has_laptop": False}, {"additional_languages": ["French sign language"]}, {"comfortable_video_recording": True}):
+        assert participant.put("/api/profile", json=dict(profile, **changes)).status_code == 200
+        assert study["id"] not in {item["id"] for item in get_matches(participant)["matches"]}
+    assert participant.put("/api/profile", json=profile).status_code == 200
+    assert match_for(participant, study)["questions"] == []
+
+
+def test_review_approval_is_owned_explicit_and_scoped_to_one_participant(client, researcher, participant):
+    study = publish(researcher, manual_review=True, rules=[
+        rule("age", "number", "between", "18,35", field="age", source="Participants aged 18-35."),
+        rule("previous"),
+    ])
+    response = participant.post("/api/review-requests", json={"study_id": study["id"], "note": "Please arrange the external checks."})
+    assert response.status_code in (200, 201), response.text
+    request = response.json()
+    assert request["status"] == "pending"
+    assert participant.post("/api/review-requests", json={"study_id": study["id"], "note": "Duplicate"}).status_code == 409
+    assert match_for(participant, study)["review_status"] == "pending"
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
+    decision_path = f"/api/review-requests/{request['id']}/decision"
+    decision = dict(decision="approved", note="Required external checks completed for this synthetic participant.", eligibility_checked=True)
+    assert participant.post(decision_path, json=decision).status_code == 403
+    signup(client, "foreign-reviewer@example.test", "researcher")
+    assert client.get("/api/researcher/studies").json()["review_requests"] == []
+    assert client.post(decision_path, json=decision).status_code in (403, 404)
+    assert researcher.post(decision_path, json=dict(decision, eligibility_checked=False)).status_code == 422
+    queue = researcher.get("/api/researcher/studies").json()["review_requests"]
+    assert any(item["id"] == request["id"] and item["note"] == "Please arrange the external checks." for item in queue)
+    assert researcher.post(decision_path, json=decision).status_code == 200
+    assert researcher.post(decision_path, json=decision).status_code == 409
+    approved = match_for(participant, study)
+    assert approved["review_status"] == "approved"
+    assert approved["review_note"] == decision["note"]
+    assert approved["status"] == "needs_screening"
+    assert participant.post("/api/answers", json={"study_id": study["id"], "answers": {"previous": False}}).json()["status"] == "eligible"
+    assert participant.put("/api/profile", json=profile_input(birth_date=birth_date_for_age(50))).status_code == 200
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
+    assert participant.put("/api/profile", json=profile_input()).status_code == 200
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 201
+    with TestClient(main.app) as other:
+        signup(other, "unreviewed@example.test")
+        assert other.put("/api/profile", json=profile_input()).status_code == 200
+        assert match_for(other, study)["review_status"] is None
+        assert match_for(other, study)["status"] == "manual_review"
+        assert other.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
+
+
+def test_declined_review_stays_blocked_and_ordinary_studies_cannot_request_review(researcher, participant):
+    ordinary = publish(researcher)
+    assert participant.post("/api/review-requests", json={"study_id": ordinary["id"], "note": "Please review."}).status_code in (409, 422)
+    study = publish(researcher, manual_review=True)
+    response = participant.post("/api/review-requests", json={"study_id": study["id"], "note": "Please review."})
+    assert response.status_code in (200, 201), response.text
+    request = response.json()
+    response = researcher.post(f"/api/review-requests/{request['id']}/decision", json={"decision": "declined", "note": "External checks are not complete.", "eligibility_checked": False})
+    assert response.status_code == 200, response.text
+    match = match_for(participant, study)
+    assert match["review_status"] == "declined"
+    assert match["review_note"] == "External checks are not complete."
+    assert match["slots"] == []
+    assert participant.post("/api/bookings", json={"slot_id": study["slots"][0]["id"]}).status_code == 409
+
+
+def test_researcher_can_add_future_distinct_sessions_only_to_owned_study(client, researcher, participant):
+    study = publish(researcher, manual_review=True, slots=[])
+    path = f"/api/researcher/studies/{study['id']}/slots"
+    payload = {"slots": study_input()["slots"]}
+    assert participant.post(path, json=payload).status_code == 403
+    signup(client, "other-slot-owner@example.test", "researcher")
+    assert client.post(path, json=payload).status_code in (403, 404)
+    past = dict(starts_at=(datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), capacity=1)
+    assert researcher.post(path, json={"slots": [past]}).status_code == 422
+    assert researcher.post(path, json={"slots": payload["slots"] * 2}).status_code == 422
+    response = researcher.post(path, json=payload)
+    assert response.status_code in (200, 201), response.text
+    assert len(response.json()["slots"]) == 1
+    assert researcher.post(path, json=payload).status_code in (409, 422)

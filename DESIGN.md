@@ -42,6 +42,7 @@ rounded:
   "6": "6px"
   "7": "7px"
   "8": "8px"
+  "12": "12px"
 spacing:
   "4": "4px"
   "8": "8px"
@@ -105,7 +106,7 @@ components:
     padding: "7px 10px"
   import-section:
     backgroundColor: "#fcfcfe"
-    rounded: "{rounded.8}"
+    rounded: "{rounded.12}"
     padding: "21px"
   study-row:
     backgroundColor: "white"
@@ -129,7 +130,7 @@ The interface is flat and quiet: crisp system-sans typography, thin dividers and
 - Text-labelled states and preference scores.
 - Responsive reflow with visible synthetic-data disclosure.
 
-This document records the implemented system in `frontend/styles.css` and `frontend/src/*.jsx`. Color keys preserve existing CSS custom-property names without the leading `--`. Numeric spacing and radius keys catalogue existing literal values; they do not introduce CSS variables. The unused `--accent-soft` and `--error` declarations are not promoted into the active palette. Surface-specific composition remains in `.impeccable/surfaces/workspace.md`.
+This document records the implemented system in `frontend/styles.css` and `frontend/src/*.jsx`. Color keys preserve existing CSS custom-property names without the leading `--`. Numeric spacing and radius keys catalogue existing literal values; they do not introduce CSS variables. Selected yes/no controls use the existing `--accent-soft` tint. Surface-specific composition remains in `.impeccable/surfaces/workspace.md`.
 
 ## Colors
 
@@ -162,11 +163,11 @@ Headlines, section titles, body and form labels follow the frontmatter hierarchy
 
 ## Layout
 
-The desktop shell uses a fixed-width rail (220px) and a flexible main column. The rail is sticky at the viewport top and fills (100svh); it is not a fixed-position overlay. The main working area is capped at (1600px), with standard page padding (32px 36px 60px). A slim workspace bar (55px) anchors the content. Discovery pairs flexible rows with a priorities column (230px) and a gap (32px). Study rows retain an aligned score column (84px).
+The desktop shell uses a fixed-width rail (220px) and a flexible main column. The rail is sticky at the viewport top and fills (100svh). The main working area is capped at (1600px), with standard page padding (32px 36px 60px). Discovery pairs flexible rows with an optional priorities column (230px) and a gap (32px). A single sidebar toggle hides priorities, next session and alerts together; the list then fills the available width. Study rows retain an aligned score column (84px). There is no workspace banner.
 
-At (min-width: 1650px), page side padding becomes (48px), the priorities column (255px), and its gap (40px). At (max-width: 1150px), the rail is (195px), page side padding (25px), and the priorities column (205px). At (max-width: 900px), the rail is (180px); priorities become a disclosure above the list, detail sidebars move below content, and date headings move above agenda rows. Supplemental discovery sidebar sections are hidden at this breakpoint.
+At (min-width: 1650px), page side padding becomes (48px), the priorities column (255px), and its gap (40px). At (max-width: 1150px), the rail is (195px), page side padding (25px), and the priorities column (205px). At (max-width: 900px), the rail is (180px); the optional sidebar moves above the list and detail sidebars move below content. The same toggle controls every sidebar section at every width.
 
-At (max-width: 650px), the shell becomes a single column with static top navigation. The synthetic-data line occupies its own full-width navigation row at (.75rem). Page padding becomes (26px 18px 40px), search fills its row, form fields and sliders stack, agenda controls wrap, and researcher rows reflow. Participant decision rows preserve the (84px) score column and allow availability and status text to wrap. Booking status is restored below the stacked booking details on mobile. Main content and flexible columns use zero minimum width to support reflow without horizontal overflow.
+At (max-width: 650px), the shell becomes a single column with static top navigation. The synthetic-data line occupies its own full-width navigation row at (.75rem). Page padding becomes (26px 18px 40px), search fills its row, form fields and sliders stack, calendar controls wrap, and researcher rows reflow. The calendar defaults to day view on mobile. Participant decision rows preserve the (84px) score column and allow availability and status text to wrap. Booking status is restored below the stacked booking details on mobile. Main content and flexible columns use zero minimum width to support reflow without horizontal overflow.
 
 Authentication uses a centered form capped at (380px), with a (40px) total horizontal inset. Form, creation and detail pages have separate existing caps of (820px), (900px) and (1260px). Use the implemented spacing rhythm; retain compact controls and generous section separation instead of adding decorative card grids.
 
@@ -178,7 +179,7 @@ State transitions last (150ms) for button backgrounds and borders, field borders
 
 ## Shapes
 
-Small corners follow the extracted radius scale: status labels and segmented options use the smallest step; fields, navigation and interest choices use the next; primary controls, session choices and messages share the middle step. Segmented-control shells and notices use (7px); the import container uses (8px). Rows are separated by fine horizontal rules rather than rounded cards. Dots, range thumbs and step markers are circular. Lucide line icons accompany text or receive accessible labels when used alone.
+Small corners follow the extracted radius scale: status labels and segmented options use the smallest step; fields, navigation and interest choices use the next; primary controls, session choices and messages share the middle step. Segmented-control shells and notices use (7px); the collapsible import container uses (12px). Rows are separated by fine horizontal rules rather than rounded cards. Dots, range thumbs and step markers are circular. Lucide line icons accompany text or receive accessible labels when used alone.
 
 ## Components
 
@@ -202,13 +203,19 @@ Interest choices are checkbox labels with bordered, softly rounded outlines; sel
 
 ### Containers and study rows
 
-Study rows are full-width buttons containing title, summary, compensation, duration, format and availability, with a separate right-aligned preference score. Row hover uses a subtle neutral fill. The import container is a bounded, slightly tinted section; form sections and published criteria use dividers instead of cards. Session choices use borders and a tinted selected state; unavailable choices are dimmed and disabled.
+Study rows are full-width buttons containing title, summary, compensation, duration, format and availability, with a separate right-aligned preference score. Row hover uses a subtle neutral fill. PDF/text import is a disclosure above the study facts. The AI preview uses natural-language descriptions and eligibility; raw criterion and convenience editors are absent. Researchers correct source facts and prepare a fresh preview. Session choices use borders and a tinted selected state; unavailable choices are dimmed and disabled.
+
+### Prescreen and calendar
+
+The 14-field prescreen uses a native birth-date picker, language and university choices with an Other option, and labelled Yes/No radio buttons. No missing answer defaults to No. Additional fluent languages can be added with a button or Enter. Preferences remain a separate second step.
+
+FullCalendar supplies a Google Calendar-style week/day time grid with previous, next and Today controls. The full 24-hour range is scrollable; initial scroll starts around 08:00. Green (#d8eee2) marks confirmed bookings and grey (#e5e7eb) marks candidate sessions, with a legend and explicit selected-session status. Event titles take priority in short time blocks. Selecting a session shows details and a separate confirmation action; there is no drag rescheduling or Google integration.
 
 ### Priorities and feedback
 
 Three labelled sliders show Earnings, Interests and Convenience with values from 1–5. Moving a slider immediately updates preference scores and ordering; saving priorities remains an explicit action. The disclosure moves above the list at compact widths. Preference fit is labelled separately from eligibility and never presented as medical clearance.
 
-Loading uses static skeleton rows with a status label. Empty views provide an icon, a short title and actionable text. Success notices use a dismissible status region; errors use an alert region. Researcher publication retains an explicit review checkbox and “Approve & publish” action. Synthetic-data wording appears in the authentication footer, workspace navigation and relevant publication context.
+Loading uses static skeleton rows with a status label. Empty views provide an icon, a short title and actionable text. Success notices use a dismissible status region; errors use an alert region. Researcher publication retains an explicit review checkbox and “Publish study” action. Participant review requests have pending, approved and declined states; researcher approval requires an explicit attestation that external checks are complete. Synthetic-data wording appears in the authentication footer, workspace navigation and publication context.
 
 ## Do's and Don'ts
 

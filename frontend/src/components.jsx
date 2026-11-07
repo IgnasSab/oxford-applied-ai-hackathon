@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowRight, CalendarDays, CircleHelp, Compass, FlaskConical, LogOut, SlidersHorizontal, UserRound, X } from 'lucide-react';
+import { useId } from 'react';
+import { ArrowLeft, ArrowRight, CalendarDays, CircleHelp, ClipboardCheck, Compass, FlaskConical, LogOut, SlidersHorizontal, UserRound, X } from 'lucide-react';
 
 export function Brand() {
   return <div className="brand"><span className="brand-mark"><FlaskConical size={18} strokeWidth={2} /></span>StudyMatch</div>;
@@ -10,6 +11,11 @@ export function Button({ children, secondary = false, className = '', ...props }
 
 export function Field({ label, hint, children, wide = false }) {
   return <label className={`field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
+}
+
+export function BooleanField({ label, value, onChange }) {
+  const name = useId();
+  return <fieldset className="boolean-field"><legend>{label}</legend><div className="yes-no">{[[true, 'Yes'], [false, 'No']].map(([answer, text]) => <label key={text} className={value === answer ? 'selected' : ''}><input type="radio" name={name} required checked={value === answer} onChange={() => onChange(answer)} /><span>{text}</span></label>)}</div></fieldset>;
 }
 
 export function ErrorMessage({ message }) {
@@ -42,8 +48,8 @@ export function Weights({ weights, onChange }) {
 
 export function Shell({ account, view, setView, onLogout, children }) {
   const participant = account.role === 'participant';
-  const navigation = participant ? [['studies', 'Discover studies', Compass], ['schedule', 'My schedule', CalendarDays], ['profile', 'Profile & preferences', SlidersHorizontal]] : [['studies', 'My studies', FlaskConical], ['bookings', 'Participant bookings', CalendarDays]];
-  return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className="navigation"><Brand /><div className="workspace-label">{participant ? 'Participant workspace' : 'Researcher workspace'}</div><nav aria-label="Main navigation">{navigation.map(([key, label, Icon]) => <button key={key} className={view === key ? 'active' : ''} aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}><Icon size={17} /><span>{label}</span></button>)}</nav><div className="nav-bottom"><div className="demo-note"><span className="status-dot" />Synthetic-data demo</div><div className="account"><span className="avatar"><UserRound size={17} /></span><div><strong>{account.name}</strong><span>{account.role}</span></div><button className="icon-button" onClick={onLogout} title="Log out" aria-label="Log out"><LogOut size={17} /></button></div></div></aside><main id="main-content" className="main-content"><div className="workspace-bar"><span>{participant ? 'Research opportunities' : 'Study management'}</span><span>Oxford <span className="bar-divider">/</span> Local workspace</span></div>{children}</main></div>;
+  const navigation = participant ? [['studies', 'Discover studies', Compass], ['schedule', 'My schedule', CalendarDays], ['profile', 'Profile & preferences', SlidersHorizontal]] : [['studies', 'My studies', FlaskConical], ['reviews', 'Review requests', ClipboardCheck], ['bookings', 'Bookings', CalendarDays]];
+  return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className="navigation"><Brand /><div className="workspace-label">{participant ? 'Participant' : 'Researcher'}</div><nav aria-label="Main navigation">{navigation.map(([key, label, Icon]) => <button key={key} className={view === key ? 'active' : ''} aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}><Icon size={17} /><span>{label}</span></button>)}</nav><div className="nav-bottom"><div className="demo-note"><span className="status-dot" />Synthetic-data demo</div><div className="account"><span className="avatar"><UserRound size={17} /></span><div><strong>{account.name}</strong><span>{account.role}</span></div><button className="icon-button" onClick={onLogout} title="Log out" aria-label="Log out"><LogOut size={17} /></button></div></div></aside><main id="main-content" className="main-content">{children}</main></div>;
 }
 
 export function Notice({ children, onClose }) {
